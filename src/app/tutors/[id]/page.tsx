@@ -1,0 +1,19 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Header } from "@/components/Header";
+import { Star } from "@/components/Star";
+import { api, useUser } from "@/lib/use-user";
+
+type Row = Record<string, any>;
+const vnd = (n: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+
+export default function TutorProfile() {
+  const id = String(useParams().id), router = useRouter(), { user, login } = useUser();
+  const [tutor, setTutor] = useState<Row | null>(null), [packages, setPackages] = useState<Row[]>([]), [subjects, setSubjects] = useState<Row[]>([]), [reviews, setReviews] = useState<Row[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState(""), [busy, setBusy] = useState(false);
+  useEffect(() => { fetch("/api/data?scope=public").then(r => r.json()).then(d => { setTutor(d.tutors?.find((t: Row) => t.id === id) || null); setPackages((d.packages || []).filter((p: Row) => p.tutorId === id)); setSubjects(d.subjects || []); setReviews((d.reviews || []).filter((r: Row) => r.tutorId === id)); }).catch(e => setError(e.message)).finally(() => setLoading(false)); }, [id]);
+  async function run(action: Row) { setBusy(true); setError(""); try { const signed = user || (await login()).user; const result = await api(signed, action); if (result.checkoutUrl) window.location.href = result.checkoutUrl; else { alert("Yêu cầu đã được gửi!"); router.push("/app"); } } catch (e) { setError(e instanceof Error ? e.message : "Có lỗi xảy ra."); } finally { setBusy(false); } }
+  if (loading) return <><Header/><div className="wrap loading-area">Đang tải hồ sơ gia sư...</div></>;
+  if (!tutor) return <><Header/><div className="wrap loading-area"><Star/><h2>Chưa tìm thấy gia sư</h2><p>{error || "Hồ sơ này hiện chưa công khai."}</p></div></>;
+  return <><Header/><main className="wrap"><div className="profile-hero"><div className="profile-portrait">{tutor.photoUrl ? <img className="profile-portrait" src={tutor.photoUrl} alt={`Ảnh ${tutor.name}`}/> : tutor.name?.slice(0,1)}</div><div><span className="eyebrow">GIA SƯ ĐÃ ĐƯỢC DUYỆT ✦</span><h1>{tutor.name}</h1><p>{tutor.bio}</p><span className="badge success">{tutor.mode === "offline" ? "Gặp trực tiếp" : "Học trực tuyến"}</span> {tutor.location && <span className="badge">{tutor.location}</span>}</div></div>{error && <p className="notice error" role="alert">{error}</p>}<div className="grid-2"><section className="panel"><h2>Gói học đang mở</h2><div className="stack">{packages.length ? packages.map(p => <div className="profile-pack" key={p.id}><div><strong>{p.title}</strong><p>{subjects.find(s => s.id === p.subjectId)?.name || "Môn học"} · {p.count} buổi · {p.durationMinutes} phút/buổi · {p.mode === "offline" ? "Trực tiếp" : "Trực tuyến"}</p><strong>{vnd(p.price)}</strong></div><button className="button button-small" disabled={busy} onClick={() => run({ action: "createOrder", packageId: p.id })}>Mua gói</button></div>) : <p>Gia sư chưa mở bán gói học.</p>}</div></section><section className="stack"><div className="panel"><h2>Học thử miễn phí</h2><p>Trao đổi mục tiêu học tập trước khi quyết định mua gói.</p><button className="button button-outline" disabled={busy} onClick={() => run({ action: "requestTrial", tutorId: id })}>Gửi yêu cầu học thử</button></div><div className="panel"><h2>Lịch rảnh</h2><p>{tutor.availability || "Hãy nhắn gia sư để thống nhất lịch phù hợp."}</p></div></section></div><section className="panel"><h2>Đánh giá từ học viên</h2>{reviews.length ? reviews.map(r => <div className="item" key={r.id}><div><strong>{"★".repeat(r.stars)}{"☆".repeat(5-r.stars)}</strong><p>{r.text}</p></div></div>) : <p className="help-text">Chưa có đánh giá từ buổi học trả phí đã hoàn thành.</p>}</section></main></>;
+}
