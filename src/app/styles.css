@@ -65,3 +65,29 @@ body{line-height:1.5}
   body:has(input:focus,textarea:focus,select:focus) .mobile-nav{display:none}
 }
 @media(max-width:380px){.brand{font-size:18px}.brand svg{width:29px;height:29px}.header-actions .button{font-size:11px;padding:7px 8px}}
+
+/* Compact desktop controls while keeping comfortable touch targets on mobile. */
+.header-inner{height:68px;gap:24px}
+.brand{font-size:22px}
+.main-nav{gap:24px}
+.header-actions{gap:8px}
+.button{min-height:42px;padding:9px 16px;border-radius:13px;box-shadow:2px 3px 0 var(--ink);transition:background-color .18s,box-shadow .18s,opacity .18s}
+.button:hover{transform:none;box-shadow:1px 2px 0 var(--ink)}
+.button:active{transform:translateY(1px);box-shadow:0 1px 0 var(--ink)}
+.button-small{min-height:38px;padding:7px 12px;border-radius:10px;box-shadow:2px 2px 0 var(--ink)}
+.button-small:hover{box-shadow:1px 1px 0 var(--ink)}
+.form-actions{align-items:flex-end;gap:10px}
+.form-actions>.button{align-self:flex-end;flex:0 0 auto;min-height:42px;padding:8px 15px;border-radius:12px;box-shadow:2px 2px 0 var(--ink)}
+.tabs{gap:7px;padding:2px 2px 8px;margin-bottom:16px}
+.tab{min-height:40px;padding:8px 12px;border-radius:10px;font-size:14px;box-shadow:none}
+.tab:hover{border-color:#c9b9ec;color:var(--violet)}
+.tab.active{box-shadow:none}
+.button:focus-visible,.tab:focus-visible,.text-button:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+@media(max-width:767px){
+  .header-inner{height:68px;min-height:68px;gap:8px}
+  .button{min-height:44px}
+  .button-small{min-height:44px}
+  .form-actions>.button{min-height:44px}
+  .tab{min-height:44px}
+}
+@media(max-width:380px){.brand{font-size:18px}.brand svg{width:29px;height:29px}}
