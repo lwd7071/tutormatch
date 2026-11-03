@@ -1,9 +1,11 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { User } from "firebase/auth";
 import { Header } from "@/components/Header";
 import { Star } from "@/components/Star";
+import { MobileNav, type NavItem } from "@/components/MobileNav";
 import { api, privateData, useUser } from "@/lib/use-user";
 
 type Row = Record<string, any>;
@@ -14,23 +16,37 @@ const field = (name: string, label: string, type = "text", value?: string | numb
 function values(e: React.FormEvent<HTMLFormElement>) { e.preventDefault(); return Object.fromEntries(new FormData(e.currentTarget).entries()); }
 function Badge({ value }: { value: string }) { return <span className={`badge ${["active","confirmed","completed"].includes(value) ? "success" : ["dispute","refund_pending","pending_tutor","pending"].includes(value) ? "warn" : ["cancelled","rejected"].includes(value) ? "danger" : ""}`}>{status[value] || value}</span>; }
 
-export default function Workspace() {
+export default function Workspace() { return <Suspense fallback={<><Header/><main className="loading-area">Đang mở khu vực của bạn...</main></>}><WorkspaceContent/></Suspense>; }
+
+function WorkspaceContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading, login } = useUser();
   const [data, setData] = useState<Row | null>(null), [publicData, setPublicData] = useState<Row>({ tutors:[], packages:[], subjects:[], reviews:[] });
-  const [tab, setTab] = useState("overview"), [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState("");
+  const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState("");
   const refresh = useCallback(async (signed: User) => { const [mine, pub] = await Promise.all([privateData(signed), fetch("/api/data?scope=public").then(r => r.json())]); setData(mine); setPublicData(pub); }, []);
   useEffect(() => { if (user) refresh(user).catch(e => setError(e.message)); }, [user, refresh]);
-  useEffect(() => { if (!user || tab !== "chat") return; const timer = setInterval(() => refresh(user).catch(() => {}), 15_000); return () => clearInterval(timer); }, [user, tab, refresh]);
-  async function run(action: Row, success = "Đã cập nhật thành công.") { if (!user) return; setBusy(true); setMessage(""); setError(""); try { const result = await api(user, action); if (result.checkoutUrl) { location.href = result.checkoutUrl; return; } await refresh(user); if (action.action === "becomeTutor") setTab("profile"); setMessage(success); } catch (e) { setError(e instanceof Error ? e.message : "Có lỗi xảy ra."); } finally { setBusy(false); } }
+  async function run(action: Row, success = "Đã cập nhật thành công.") { if (!user) return; setBusy(true); setMessage(""); setError(""); try { const result = await api(user, action); if (result.checkoutUrl) { location.href = result.checkoutUrl; return; } await refresh(user); if (action.action === "becomeTutor") router.push("/app?tab=profile"); setMessage(success); } catch (e) { setError(e instanceof Error ? e.message : "Có lỗi xảy ra."); } finally { setBusy(false); } }
   const role = data?.user?.role || "student";
   const tabs = role === "admin" ? [["overview","Tổng quan"],["tutors","Duyệt gia sư"],["disputes","Buổi tranh chấp"],["money","Hoàn & rút tiền"],["users","Người dùng"],["reviews","Đánh giá"],["settings","Thiết lập"]] : role === "tutor" ? [["overview","Tổng quan"],["profile","Hồ sơ & gói"],["orders","Học viên"],["sessions","Lịch học"],["wallet","Thu nhập"],["chat","Tin nhắn"]] : [["overview","Tổng quan"],["orders","Gói của tôi"],["sessions","Lịch học"],["chat","Tin nhắn"],["notices","Thông báo"],["becomeTutor","Trở thành gia sư"]];
+  const requestedTab = searchParams.get("tab") || "overview";
+  const tab = tabs.some(([key]) => key === requestedTab) ? requestedTab : "overview";
+  const primary: NavItem[] = role === "admin" ? [
+    { label:"Tổng quan", href:"/app?tab=overview", icon:"home" }, { label:"Duyệt", href:"/app?tab=tutors", icon:"shield" }, { label:"Tranh chấp", href:"/app?tab=disputes", icon:"calendar" }, { label:"Tiền", href:"/app?tab=money", icon:"money" }, { label:"Thêm", href:"#more", icon:"more" },
+  ] : role === "tutor" ? [
+    { label:"Tổng quan", href:"/app?tab=overview", icon:"home" }, { label:"Lịch", href:"/app?tab=sessions", icon:"calendar" }, { label:"Học viên", href:"/app?tab=orders", icon:"users" }, { label:"Tin nhắn", href:"/app?tab=chat", icon:"chat" }, { label:"Thêm", href:"#more", icon:"more" },
+  ] : [
+    { label:"Tổng quan", href:"/app?tab=overview", icon:"home" }, { label:"Gia sư", href:"/#tim-gia-su", icon:"search" }, { label:"Lịch", href:"/app?tab=sessions", icon:"calendar" }, { label:"Tin nhắn", href:"/app?tab=chat", icon:"chat" }, { label:"Thêm", href:"#more", icon:"more" },
+  ];
+  const moreItems: NavItem[] = tabs.filter(([key]) => !primary.some(item => item.href === `/app?tab=${key}`)).map(([key,label]) => ({ label, href:`/app?tab=${key}`, icon: key === "orders" ? "book" : key === "wallet" ? "money" : key === "users" ? "users" : key === "settings" ? "shield" : "help" }));
+  useEffect(() => { if (!user || tab !== "chat") return; const timer = setInterval(() => refresh(user).catch(() => {}), 15_000); return () => clearInterval(timer); }, [user, tab, refresh]);
   if (authLoading) return <><Header/><div className="loading-area">Đang kiểm tra đăng nhập...</div></>;
   if (!user) return <><Header/><main className="wrap loading-area"><Star size={92}/><h1>Xin chào bạn!</h1><p>Đăng nhập Google để xem gói học và lịch của mình.</p><button className="button" onClick={() => login().catch(e => setError(e.message))}>Đăng nhập Google</button>{error && <p className="notice error">{error}</p>}</main></>;
-  return <><Header/><main className="app-shell"><div className="wrap app-main"><div className="app-heading"><div><span className="eyebrow">GÓC CỦA BẠN ✦</span><h1>{role === "admin" ? "Bảng điều hành" : role === "tutor" ? "Xin chào gia sư!" : "Học vui hôm nay nhé!"}</h1><p>{user.displayName || user.email}</p></div><Star size={75} mood="wink"/></div>{error && <div className="notice error" role="alert">{error}</div>}{message && <div className="notice" role="status">{message}</div>}{!data ? <div className="panel">Đang tải dữ liệu... {error && <button className="button button-small" onClick={() => refresh(user)}>Thử lại</button>}</div> : <><nav className="tabs" aria-label="Khu vực của tôi">{tabs.map(([key,label]) => <button key={key} className={`tab ${tab === key ? "active" : ""}`} onClick={() => setTab(key)}>{label}</button>)}</nav>
+  return <><Header hideMobileNav={!!data}/><main className={`app-shell role-${role}`}><div className="wrap app-main"><div className="app-heading"><div><span className="eyebrow">GÓC CỦA BẠN ✦</span><h1>{role === "admin" ? "Bảng điều hành" : role === "tutor" ? "Xin chào gia sư!" : "Học vui hôm nay nhé!"}</h1><p>{user.displayName || user.email}</p></div><Star size={75} mood="wink"/></div>{error && <div className="notice error" role="alert">{error}</div>}{message && <div className="notice" role="status">{message}</div>}{!data ? <div className="panel">Đang tải dữ liệu... {error && <button className="button button-small" onClick={() => refresh(user)}>Thử lại</button>}</div> : <><nav className="tabs" aria-label="Khu vực của tôi">{tabs.map(([key,label]) => <Link key={key} href={`/app?tab=${key}`} scroll={false} aria-current={tab === key ? "page" : undefined} className={`tab ${tab === key ? "active" : ""}`}>{label}</Link>)}</nav>
   {role === "student" && (tab === "becomeTutor" ? <><UploadTools user={user}/><TutorView tab="profile" data={data} publicData={publicData} run={run} busy={busy}/></> : <>{tab === "orders" && <PendingPayments data={data}/>}<StudentView tab={tab} data={data} publicData={publicData} run={run} busy={busy}/></>)}
   {role === "tutor" && <>{tab === "profile" && <><UploadTools user={user}/><PackageTools data={data} run={run} busy={busy}/></>}<TutorView tab={tab} data={data} publicData={publicData} run={run} busy={busy}/>{tab === "overview" && <NoticesPanel data={data}/>}</>}
   {role === "admin" && <>{tab === "settings" && <SubjectTools data={data} run={run} busy={busy}/>} {tab === "money" && <RefundReviewTools data={data} run={run} busy={busy}/>}<AdminView tab={tab} data={data} publicData={publicData} run={run} busy={busy} user={user}/></>}
-  </>}</div></main></>;
+  </>}</div></main>{data && <MobileNav items={primary} activeHref={`/app?tab=${tab}`} moreItems={moreItems}/>}</>;
 }
 
 function UploadTools({ user }: { user: User }) {
