@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       user.role === "tutor" ? database.doc(`wallets/${user.uid}`).get() : Promise.resolve(null),
       user.role === "admin" ? database.collection("users").get() : database.collection("users").limit(0).get(),
       user.role === "admin" ? database.collection("tutors").get() : database.collection("tutors").limit(0).get(),
-      user.role === "admin" ? database.collection("subjects").get() : database.collection("subjects").limit(0).get(),
+      user.role === "admin" ? database.collection("subjects").get() : user.role === "tutor" ? database.collection("subjects").where("active", "==", true).get() : database.collection("subjects").limit(0).get(),
       user.role === "admin" ? database.collection("reviews").get() : database.collection("reviews").limit(0).get(),
       user.role === "admin" ? database.doc("settings/main").get() : Promise.resolve(null),
     ]);
