@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { db, storageBucket } from "@/lib/firebase-admin";
+import { db } from "@/lib/firebase-admin";
+import { mediaCloud } from "@/lib/cloudinary";
 import { actor } from "@/lib/server";
 
 export const runtime = "nodejs";
@@ -14,9 +15,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ uid:
       const user = await actor(req);
       if (user.uid !== uid && user.role !== "admin") return new Response("Forbidden", { status: 403 });
     }
-    const file = storageBucket().file(`tutors/${uid}/${kind}`);
-    const [buffer] = await file.download();
-    const [metadata] = await file.getMetadata();
-    return new Response(new Uint8Array(buffer), { headers: { "Content-Type": metadata.contentType || "application/octet-stream", "Cache-Control": kind === "photo" ? "public, max-age=3600" : "private, no-store", "X-Content-Type-Options": "nosniff" } });
+    const file = (await db().doc(`media/${uid}`).get()).data()?.[kind] as { publicId: string; format: string; resourceType: "image" | "raw"; contentType: string } | undefined;
+    if (!file) return new Response("Not found", { status: 404 });
+    const cloud = mediaCloud();
+    const url = cloud.url(file.publicId, { resource_type: file.resourceType, type: "authenticated", format: file.resourceType === "image" ? file.format : undefined, sign_url: true });
+    const response = await fetch(url);
+    if (!response.ok) return new Response("Not found", { status: 404 });
+    return new Response(response.body, { headers: { "Content-Type": file.contentType, "Cache-Control": kind === "photo" ? "public, max-age=3600" : "private, no-store", "X-Content-Type-Options": "nosniff" } });
   } catch { return new Response("Not found", { status: 404 }); }
 }

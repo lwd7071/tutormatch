@@ -9,7 +9,9 @@ Next.js application for one-to-one tutoring, prepaid packages, confirmed lessons
 3. To use the server locally, add `FIREBASE_SERVICE_ACCOUNT_JSON` to `.env.local` as a single-line JSON value. In Vercel, configure it as a server environment variable instead.
 4. `npm run dev`
 
-Enable Google sign-in in Firebase Authentication. Create a Firestore database and a Storage bucket. Deploy `firestore.rules` and `storage.rules` with the Firebase CLI; both deny direct client access because all business data passes through authenticated server routes. Set `FIREBASE_STORAGE_BUCKET` to the bucket name. Set `ADMIN_GOOGLE_EMAIL` to the Google account that should administer the site. The admin creates subjects before tutors can publish packages.
+Enable Google sign-in in Firebase Authentication and create a Firestore database. Deploy `firestore.rules` with the Firebase CLI; business data passes through authenticated server routes. Create a Cloudinary account and set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` as server environment variables locally and in Vercel. Uploaded tutor photos and verification documents are stored as authenticated Cloudinary assets and served through the app. Set `ADMIN_GOOGLE_EMAIL` to the Google account that should administer the site. The admin creates subjects before tutors can publish packages.
+
+For PDF verification documents on Cloudinary's Free plan, enable **Allow delivery of PDF and ZIP files** under Console Settings → Security. Cloudinary disables PDF delivery by default on Free accounts.
 
 ## Payments
 
