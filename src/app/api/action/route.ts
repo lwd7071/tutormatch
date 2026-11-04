@@ -1,8 +1,11 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { mediaCloud } from "@/lib/cloudinary";
 import { actor, DAY, fail, integer, now, requireRole, str } from "@/lib/server";
 import { moneyForSession } from "@/lib/money";
 import { createPaymentLink, paymentEnabled } from "@/lib/payos";
+import { approvedTutorUpdate, prepareTutorSubmission, tutorAcceptsNewOrders, tutorFields, type TutorMedia } from "@/lib/tutor-profile";
 
 export const runtime = "nodejs";
 type Input = Record<string, unknown>;
@@ -14,13 +17,6 @@ async function calendarReservation(tx: FirebaseFirestore.Transaction, uid: strin
   if (slots.some(s => slot.start < s.end && slot.end > s.start)) throw new Error("Lịch này trùng với một buổi đã tạo.");
   return { ref, slots: [...slots, slot] };
 }
-function mediaUrl(value: unknown, uid: string, kind: "photo" | "document", origin: string) {
-  if (!value && kind === "photo") return "";
-  const url = new URL(str(value, 500), origin);
-  if (url.pathname !== `/api/media/${uid}/${kind}`) throw new Error("Vui lòng tải tệp lên bằng biểu mẫu.");
-  return url.pathname + url.search;
-}
-
 async function notify(userId: string, text: string) {
   await db().collection("notifications").add({ userId, text, at: now() });
 }
@@ -32,20 +28,19 @@ export async function POST(req: NextRequest) {
     const action = str(data.action, 40);
     const database = db();
 
-    if (action === "becomeTutor") {
+    if (action === "becomeTutor" || action === "saveTutor") {
       requireRole(user, "student", "tutor");
-      if (!(await database.doc(`media/${user.uid}`).get()).data()?.document) throw new Error("Vui lòng tải giấy tờ xác minh lên trước.");
-      await database.doc(`users/${user.uid}`).set({ email: user.email, role: "tutor" }, { merge: true });
-      await database.doc(`tutors/${user.uid}`).set({ name: str(data.name, 80), bio: str(data.bio, 2000), photoUrl: mediaUrl(data.photoUrl, user.uid, "photo", req.nextUrl.origin), documentUrl: mediaUrl(data.documentUrl, user.uid, "document", req.nextUrl.origin), mode: data.mode === "both" ? "both" : data.mode === "offline" ? "offline" : "online", location: typeof data.location === "string" ? data.location.slice(0, 120) : "", status: "pending", updatedAt: now(), email: user.email }, { merge: true });
-      return Response.json({ ok: true });
-    }
-
-    if (action === "saveTutor") {
-      requireRole(user, "tutor");
-      if (!(await database.doc(`media/${user.uid}`).get()).data()?.document) throw new Error("Vui lòng tải giấy tờ xác minh lên trước.");
-      const ref = database.doc(`tutors/${user.uid}`);
-      const existing = await ref.get();
-      await ref.set({ name: str(data.name, 80), bio: str(data.bio, 2000), photoUrl: mediaUrl(data.photoUrl, user.uid, "photo", req.nextUrl.origin), documentUrl: mediaUrl(data.documentUrl, user.uid, "document", req.nextUrl.origin), mode: data.mode === "both" ? "both" : data.mode === "offline" ? "offline" : "online", location: typeof data.location === "string" ? data.location.slice(0, 120) : "", availability: typeof data.availability === "string" ? data.availability.slice(0, 500) : "", status: existing.data()?.status === "approved" ? "pending" : existing.data()?.status || "pending", updatedAt: now() }, { merge: true });
+      const fields = tutorFields(data);
+      await database.runTransaction(async tx => {
+        const liveRef = database.doc(`tutors/${user.uid}`);
+        const submissionRef = database.doc(`tutorSubmissions/${user.uid}`);
+        const mediaRef = database.doc(`media/${user.uid}`);
+        const [liveSnap, submissionSnap, mediaSnap] = await Promise.all([tx.get(liveRef), tx.get(submissionRef), tx.get(mediaRef)]);
+        const live = liveSnap.data(), submission = submissionSnap.data(), media = mediaSnap.data();
+        const candidate = prepareTutorSubmission(live, submission, media, fields);
+        tx.set(submissionRef, { ...fields, ...candidate, status: "pending", email: user.email, submittedAt: now() });
+        tx.set(database.doc(`users/${user.uid}`), { email: user.email, role: "tutor" }, { merge: true });
+      });
       return Response.json({ ok: true });
     }
 
@@ -80,7 +75,7 @@ export async function POST(req: NextRequest) {
       if (!pack?.active) throw new Error("Gói này hiện không mở bán.");
       if (pack.tutorId === user.uid) throw new Error("Bạn không thể mua gói của chính mình.");
       const tutor = (await database.doc(`tutors/${pack.tutorId}`).get()).data();
-      if (tutor?.status !== "approved") throw new Error("Gia sư hiện không nhận học viên.");
+      if (!tutorAcceptsNewOrders(tutor?.status)) throw new Error("Gia sư hiện không nhận học viên.");
       const sourceId = typeof data.renewalOf === "string" ? data.renewalOf : "";
       let renewal = false;
       if (sourceId) {
@@ -255,7 +250,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "requestTrial") {
       const tutorId = str(data.tutorId, 100), tutor = (await database.doc(`tutors/${tutorId}`).get()).data();
-      if (!tutor || tutor.status !== "approved" || tutorId === user.uid) throw new Error("Gia sư chưa sẵn sàng nhận học thử.");
+      if (!tutor || !tutorAcceptsNewOrders(tutor.status) || tutorId === user.uid) throw new Error("Gia sư chưa sẵn sàng nhận học thử.");
       const id = `${user.uid}_${tutorId}`;
       await database.doc(`trials/${id}`).create({ studentId: user.uid, tutorId, status: "requested", message: typeof data.message === "string" ? data.message.slice(0, 500) : "", at: now() });
       await notify(tutorId, "Có học viên yêu cầu học thử miễn phí.");
@@ -313,9 +308,55 @@ export async function POST(req: NextRequest) {
       }
       else if (kind === "fee") { await database.doc("settings/main").set({ feeRate: integer(data.feeRate, 0, 100) }, { merge: true }); }
       else if (kind === "approveTutor" || kind === "rejectTutor") {
-        const ref = database.doc(`tutors/${str(id, 100)}`); if (!(await ref.get()).exists) throw new Error("Không tìm thấy gia sư.");
-        await ref.update({ status: kind === "approveTutor" ? "approved" : "rejected", reviewedAt: now() });
-        await notify(id, kind === "approveTutor" ? "Hồ sơ gia sư đã được duyệt." : "Hồ sơ gia sư chưa được duyệt.");
+        const uid = str(id, 100), reason = kind === "rejectTutor" ? str(data.reason, 500) : "";
+        let verifiedPhoto = "", verifiedDocument = "";
+        if (kind === "approveTutor") {
+          const [liveSnap, submissionSnap, mediaSnap] = await Promise.all([database.doc(`tutors/${uid}`).get(), database.doc(`tutorSubmissions/${uid}`).get(), database.doc(`media/${uid}`).get()]);
+          const candidate = submissionSnap.data() || (liveSnap.data()?.status === "pending" ? { ...liveSnap.data(), photo: mediaSnap.data()?.photo, document: mediaSnap.data()?.document } : null);
+          if (!candidate || candidate.status !== "pending" || !candidate.photo || !candidate.document) throw new Error("Hồ sơ cần ảnh chân dung và giấy tờ hợp lệ trước khi duyệt.");
+          const cloud = mediaCloud();
+          for (const asset of [candidate.photo, candidate.document] as TutorMedia[]) {
+            const url = cloud.url(asset.publicId, { resource_type: asset.resourceType, type: "authenticated", format: asset.resourceType === "image" ? asset.format : undefined, sign_url: true });
+            if (!(await fetch(url, { method: "HEAD" })).ok) throw new Error("Không mở được ảnh hoặc giấy tờ. Hãy yêu cầu gia sư tải lại tệp.");
+          }
+          verifiedPhoto = candidate.photo.publicId;
+          verifiedDocument = candidate.document.publicId;
+        }
+        const previous = await database.runTransaction(async tx => {
+          const liveRef = database.doc(`tutors/${uid}`), submissionRef = database.doc(`tutorSubmissions/${uid}`), mediaRef = database.doc(`media/${uid}`);
+          const [liveSnap, submissionSnap, mediaSnap] = await Promise.all([tx.get(liveRef), tx.get(submissionRef), tx.get(mediaRef)]);
+          const live = liveSnap.data(), submission = submissionSnap.data(), media = mediaSnap.data();
+          const candidate = submission || (live?.status === "pending" ? { ...live, photo: media?.photo, document: media?.document } : null);
+          if (!candidate || candidate.status !== "pending") throw new Error("Hồ sơ không còn chờ duyệt.");
+          if (kind === "rejectTutor") {
+            tx.set(submissionRef, { ...candidate, status: "rejected", reviewReason: reason, reviewedAt: now(), reviewedBy: user.uid });
+            if (!submission && liveSnap.exists) tx.update(liveRef, { status: "rejected", reviewedAt: now() });
+            return null;
+          }
+          if (!candidate.photo || !candidate.document) throw new Error("Cần ảnh chân dung và giấy tờ xác minh trước khi duyệt.");
+          if (candidate.photo.publicId !== verifiedPhoto || candidate.document.publicId !== verifiedDocument) throw new Error("Hồ sơ vừa thay đổi. Vui lòng mở lại bản gửi duyệt.");
+          const version = now();
+          tx.set(liveRef, approvedTutorUpdate(candidate, live, uid, version), { merge: true });
+          tx.set(mediaRef, { photo: candidate.photo, document: candidate.document, stagedPhoto: FieldValue.delete(), stagedDocument: FieldValue.delete() }, { merge: true });
+          if (submission) tx.delete(submissionRef);
+          return { oldPhoto: media?.photo as TutorMedia | undefined, oldDocument: media?.document as TutorMedia | undefined, photo: candidate.photo as TutorMedia, document: candidate.document as TutorMedia };
+        });
+        if (previous) try {
+          const cloud = mediaCloud();
+          for (const [oldAsset, newAsset] of [[previous.oldPhoto, previous.photo], [previous.oldDocument, previous.document]] as [TutorMedia | undefined, TutorMedia][]) {
+            if (oldAsset && oldAsset.publicId !== newAsset.publicId) await cloud.uploader.destroy(oldAsset.publicId, { resource_type: oldAsset.resourceType, type: "authenticated", invalidate: true });
+          }
+        } catch (error) { console.error("Could not remove previous tutor media", error); }
+        await notify(uid, kind === "approveTutor" ? "Hồ sơ gia sư đã được duyệt." : `Hồ sơ gia sư chưa được duyệt: ${reason}`);
+      }
+      else if (kind === "suspendTutor" || kind === "restoreTutor") {
+        const uid = str(id, 100), ref = database.doc(`tutors/${uid}`);
+        await database.runTransaction(async tx => {
+          const status = (await tx.get(ref)).data()?.status;
+          if (status !== (kind === "suspendTutor" ? "approved" : "suspended")) throw new Error("Trạng thái hồ sơ đã thay đổi.");
+          tx.update(ref, { status: kind === "suspendTutor" ? "suspended" : "approved", updatedAt: now() });
+        });
+        await notify(uid, kind === "suspendTutor" ? "Hồ sơ gia sư đã được tạm ẩn." : "Hồ sơ gia sư đã được khôi phục.");
       }
       else if (kind === "blockUser" || kind === "unblockUser") {
         const uid = str(id, 128);

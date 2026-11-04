@@ -13,6 +13,10 @@ Enable Google sign-in in Firebase Authentication and create a Firestore database
 
 For PDF verification documents on Cloudinary's Free plan, enable **Allow delivery of PDF and ZIP files** under Console Settings → Security. Cloudinary disables PDF delivery by default on Free accounts.
 
+Tutor applications require a portrait and a verification document (up to 4 MB each). Replacements and profile edits are reviewed as a separate submission while the approved profile stays live. Admins can suspend a tutor to stop new sales and trial requests without deleting existing orders.
+
+Before releasing the revised tutor review flow, run `node scripts/migrate-tutor-profiles.mjs` to inspect legacy pending/rejected profiles and approved profiles missing a photo URL. With a configured service account, run the same command with `--apply` to backfill them. The app keeps a read fallback for legacy pending/rejected profiles; any profile reported under `missingFiles` needs its tutor to reupload both required files before approval.
+
 ## Payments
 
 Set `APP_PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, and `PAYOS_CHECKSUM_KEY` when ready. Configure the payOS payment webhook URL to `https://YOUR_DOMAIN/api/payments/webhook`. Redirects never activate an order; only a verified webhook does. Refunds and tutor withdrawals are manual bank transfers recorded by an admin. Verify the money-holding and payout arrangement before taking live payments.

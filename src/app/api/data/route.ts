@@ -9,6 +9,10 @@ function rows(snapshot: FirebaseFirestore.QuerySnapshot): Record<string, any>[] 
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
+function submissionView({ photo, document, ...fields }: Record<string, any>) {
+  return { ...fields, hasPhoto: !!photo, hasDocument: !!document };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const scope = req.nextUrl.searchParams.get("scope") || "public";
@@ -21,7 +25,12 @@ export async function GET(req: NextRequest) {
         database.collection("subjects").get(),
         database.collection("reviews").where("status", "==", "visible").get(),
       ]);
-      return Response.json({ tutors: rows(tutors).map(({ documentUrl, email, ...safe }) => safe), packages: rows(packages), subjects: rows(subjects).filter(s => s.active), reviews: rows(reviews) });
+      const approved = rows(tutors);
+      const missingPhotos = approved.filter(t => !t.photoUrl);
+      const media = await Promise.all(missingPhotos.map(t => database.doc(`media/${t.id}`).get()));
+      for (let i = 0; i < missingPhotos.length; i++) if (media[i].data()?.photo) missingPhotos[i].photoUrl = `/api/media/${missingPhotos[i].id}/photo`;
+      const approvedIds = new Set(approved.map(t => t.id));
+      return Response.json({ tutors: approved.map(({ documentUrl, email, ...safe }) => safe), packages: rows(packages).filter(p => approvedIds.has(p.tutorId)), subjects: rows(subjects).filter(s => s.active), reviews: rows(reviews) });
     }
     const user = await actor(req);
     await Promise.all([
@@ -36,6 +45,7 @@ export async function GET(req: NextRequest) {
       user.role === "admin" ? database.collection("subjects").get() : user.role === "tutor" ? database.collection("subjects").where("active", "==", true).get() : database.collection("subjects").limit(0).get(),
       user.role === "admin" ? database.collection("reviews").get() : database.collection("reviews").limit(0).get(),
       user.role === "admin" ? database.doc("settings/main").get() : Promise.resolve(null),
+      user.role === "admin" ? database.collection("tutorSubmissions").get() : database.collection("tutorSubmissions").limit(0).get(),
     ]);
     const primary = Promise.all([
       database.doc(`tutors/${user.uid}`).get(),
@@ -46,11 +56,21 @@ export async function GET(req: NextRequest) {
       user.role === "admin" ? database.collection("refunds").get() : database.collection("refunds").where("studentId", "==", user.uid).get(),
       database.collection("notifications").where("userId", "==", user.uid).get(),
       user.role === "admin" ? database.collection("trials").get() : database.collection("trials").where(user.role === "tutor" ? "tutorId" : "studentId", "==", user.uid).get(),
+      database.doc(`media/${user.uid}`).get(),
+      database.doc(`tutorSubmissions/${user.uid}`).get(),
     ]);
     const [
-      [profile, orders, sessions, messages, withdrawals, refunds, notices, trials],
-      [myPackages, wallet, users, tutors, subjects, reviews, settings],
+      [profile, orders, sessions, messages, withdrawals, refunds, notices, trials, myMedia, mySubmission],
+      [myPackages, wallet, users, tutors, subjects, reviews, settings, adminSubmissions],
     ] = await Promise.all([primary, extra]);
-    return Response.json({ user, profile: profile.exists ? { id: profile.id, ...profile.data() } : null, orders: rows(orders), sessions: rows(sessions), messages: rows(messages), withdrawals: rows(withdrawals), refunds: rows(refunds), notices: rows(notices), trials: rows(trials), packages: rows(myPackages), wallet: wallet?.data() || { available: 0, pending: 0 }, users: rows(users), tutors: rows(tutors), subjects: rows(subjects), reviews: rows(reviews), settings: settings?.data() || { feeRate: 10 } });
+    const profileData: Record<string, any> | null = profile.exists ? { id: profile.id, ...profile.data() } : null;
+    const ownSubmission = mySubmission.exists ? { id: mySubmission.id, ...mySubmission.data() } : profileData && ["pending", "rejected"].includes(profileData.status) ? { ...profileData, photoSource: "photo", documentSource: "document", legacy: true } : null;
+    const allTutors = rows(tutors), submissions = rows(adminSubmissions);
+    const submittedIds = new Set(submissions.map(s => s.id));
+    const legacy: Record<string, any>[] = allTutors.filter(t => ["pending", "rejected"].includes(t.status) && !submittedIds.has(t.id)).map(t => ({ ...t, photoSource: "photo", documentSource: "document", legacy: true }));
+    const legacyMedia = await Promise.all(legacy.map(t => database.doc(`media/${t.id}`).get()));
+    for (let i = 0; i < legacy.length; i++) Object.assign(legacy[i], { photo: legacyMedia[i].data()?.photo, document: legacyMedia[i].data()?.document });
+    const mediaState = myMedia.data();
+    return Response.json({ user, profile: profileData, submission: ownSubmission ? submissionView(ownSubmission) : null, media: { photo: !!mediaState?.photo, document: !!mediaState?.document, stagedPhoto: !!mediaState?.stagedPhoto, stagedDocument: !!mediaState?.stagedDocument }, submissions: [...submissions, ...legacy].map(submissionView), orders: rows(orders), sessions: rows(sessions), messages: rows(messages), withdrawals: rows(withdrawals), refunds: rows(refunds), notices: rows(notices), trials: rows(trials), packages: rows(myPackages), wallet: wallet?.data() || { available: 0, pending: 0 }, users: rows(users), tutors: allTutors, subjects: rows(subjects), reviews: rows(reviews), settings: settings?.data() || { feeRate: 10 } });
   } catch (error) { return fail(error); }
 }

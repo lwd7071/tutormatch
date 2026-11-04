@@ -6,7 +6,7 @@
 web
 
 ## Stack
-Next.js on Vercel, Firebase Authentication/Firestore/Storage, payOS payments.
+Next.js on Vercel, Firebase Authentication/Firestore, Cloudinary media, payOS payments.
 
 ## Users
 Guests searching for a tutor; students buying lessons; tutors offering one-to-one lessons; administrators resolving money and session issues.
