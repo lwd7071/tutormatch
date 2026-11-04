@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       requireRole(user, "student", "tutor");
       if (!(await database.doc(`media/${user.uid}`).get()).data()?.document) throw new Error("Vui lòng tải giấy tờ xác minh lên trước.");
       await database.doc(`users/${user.uid}`).set({ email: user.email, role: "tutor" }, { merge: true });
-      await database.doc(`tutors/${user.uid}`).set({ name: str(data.name, 80), bio: str(data.bio, 2000), photoUrl: mediaUrl(data.photoUrl, user.uid, "photo", req.nextUrl.origin), documentUrl: mediaUrl(data.documentUrl, user.uid, "document", req.nextUrl.origin), mode: data.mode === "offline" ? "offline" : "online", location: typeof data.location === "string" ? data.location.slice(0, 120) : "", status: "pending", updatedAt: now(), email: user.email }, { merge: true });
+      await database.doc(`tutors/${user.uid}`).set({ name: str(data.name, 80), bio: str(data.bio, 2000), photoUrl: mediaUrl(data.photoUrl, user.uid, "photo", req.nextUrl.origin), documentUrl: mediaUrl(data.documentUrl, user.uid, "document", req.nextUrl.origin), mode: data.mode === "both" ? "both" : data.mode === "offline" ? "offline" : "online", location: typeof data.location === "string" ? data.location.slice(0, 120) : "", status: "pending", updatedAt: now(), email: user.email }, { merge: true });
       return Response.json({ ok: true });
     }
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       if (!(await database.doc(`media/${user.uid}`).get()).data()?.document) throw new Error("Vui lòng tải giấy tờ xác minh lên trước.");
       const ref = database.doc(`tutors/${user.uid}`);
       const existing = await ref.get();
-      await ref.set({ name: str(data.name, 80), bio: str(data.bio, 2000), photoUrl: mediaUrl(data.photoUrl, user.uid, "photo", req.nextUrl.origin), documentUrl: mediaUrl(data.documentUrl, user.uid, "document", req.nextUrl.origin), mode: data.mode === "offline" ? "offline" : "online", location: typeof data.location === "string" ? data.location.slice(0, 120) : "", availability: typeof data.availability === "string" ? data.availability.slice(0, 500) : "", status: existing.data()?.status === "approved" ? "pending" : existing.data()?.status || "pending", updatedAt: now() }, { merge: true });
+      await ref.set({ name: str(data.name, 80), bio: str(data.bio, 2000), photoUrl: mediaUrl(data.photoUrl, user.uid, "photo", req.nextUrl.origin), documentUrl: mediaUrl(data.documentUrl, user.uid, "document", req.nextUrl.origin), mode: data.mode === "both" ? "both" : data.mode === "offline" ? "offline" : "online", location: typeof data.location === "string" ? data.location.slice(0, 120) : "", availability: typeof data.availability === "string" ? data.availability.slice(0, 500) : "", status: existing.data()?.status === "approved" ? "pending" : existing.data()?.status || "pending", updatedAt: now() }, { merge: true });
       return Response.json({ ok: true });
     }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       if (old.exists && old.data()?.tutorId !== user.uid) throw new Error("Bạn không có quyền sửa gói này.");
       const subjectId = str(data.subjectId, 100);
       if (!(await database.doc(`subjects/${subjectId}`).get()).exists) throw new Error("Môn học không tồn tại.");
-      await ref.set({ tutorId: user.uid, title: str(data.title, 100), subjectId, price: integer(data.price, 1000, 100_000_000), count: integer(data.count, 1, 100), durationMinutes: integer(data.durationMinutes, 15, 240), mode: data.mode === "offline" ? "offline" : "online", active: data.active === true, updatedAt: now() }, { merge: true });
+      await ref.set({ tutorId: user.uid, title: str(data.title, 100), subjectId, price: integer(data.price, 1000, 100_000_000), count: integer(data.count, 1, 100), durationMinutes: integer(data.durationMinutes, 15, 240), mode: data.mode === "both" ? "both" : data.mode === "offline" ? "offline" : "online", active: data.active === true, updatedAt: now() }, { merge: true });
       return Response.json({ ok: true, id: packageId });
     }
 
