@@ -6,6 +6,8 @@ import { actor, DAY, fail, integer, now, requireRole, str } from "@/lib/server";
 import { moneyForSession } from "@/lib/money";
 import { createPaymentLink, paymentEnabled } from "@/lib/payos";
 import { approvedTutorUpdate, prepareTutorSubmission, tutorAcceptsNewOrders, tutorFields, type TutorMedia } from "@/lib/tutor-profile";
+import { canCancelSession } from "@/lib/public-data";
+import { requireRefundBankCorrection, requireRefundBankSubmission } from "@/lib/refund-state";
 
 export const runtime = "nodejs";
 type Input = Record<string, unknown>;
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
       const old = await ref.get();
       if (old.exists && old.data()?.tutorId !== user.uid) throw new Error("Bạn không có quyền sửa gói này.");
       const subjectId = str(data.subjectId, 100);
-      if (!(await database.doc(`subjects/${subjectId}`).get()).exists) throw new Error("Môn học không tồn tại.");
+      if ((await database.doc(`subjects/${subjectId}`).get()).data()?.active !== true) throw new Error("Môn học hiện không mở bán.");
       await ref.set({ tutorId: user.uid, title: str(data.title, 100), subjectId, price: integer(data.price, 1000, 100_000_000), count: integer(data.count, 1, 100), durationMinutes: integer(data.durationMinutes, 15, 240), mode: data.mode === "both" ? "both" : data.mode === "offline" ? "offline" : "online", active: data.active === true, updatedAt: now() }, { merge: true });
       return Response.json({ ok: true, id: packageId });
     }
@@ -62,7 +64,10 @@ export async function POST(req: NextRequest) {
       requireRole(user, "tutor");
       const ref = database.doc(`packages/${str(data.id, 100)}`), pack = (await ref.get()).data();
       if (!pack || pack.tutorId !== user.uid) throw new Error("Không tìm thấy gói học của bạn.");
-      if (!pack.active && (await database.doc(`tutors/${user.uid}`).get()).data()?.status !== "approved") throw new Error("Hồ sơ cần được duyệt để mở bán.");
+      if (!pack.active) {
+        if ((await database.doc(`tutors/${user.uid}`).get()).data()?.status !== "approved") throw new Error("Hồ sơ cần được duyệt để mở bán.");
+        if ((await database.doc(`subjects/${pack.subjectId}`).get()).data()?.active !== true) throw new Error("Môn học hiện không mở bán.");
+      }
       await ref.update({ active: !pack.active, updatedAt: now() });
       return Response.json({ ok: true });
     }
@@ -73,9 +78,10 @@ export async function POST(req: NextRequest) {
       const packageId = str(data.packageId, 100);
       const pack = (await database.doc(`packages/${packageId}`).get()).data();
       if (!pack?.active) throw new Error("Gói này hiện không mở bán.");
+      if ((await database.doc(`subjects/${pack.subjectId}`).get()).data()?.active !== true) throw new Error("Môn học hiện không mở bán.");
       if (pack.tutorId === user.uid) throw new Error("Bạn không thể mua gói của chính mình.");
-      const tutor = (await database.doc(`tutors/${pack.tutorId}`).get()).data();
-      if (!tutorAcceptsNewOrders(tutor?.status)) throw new Error("Gia sư hiện không nhận học viên.");
+      const [tutorSnap, tutorUserSnap] = await Promise.all([database.doc(`tutors/${pack.tutorId}`).get(), database.doc(`users/${pack.tutorId}`).get()]);
+      if (!tutorAcceptsNewOrders(tutorSnap.data()?.status, tutorUserSnap.data()?.blocked === true)) throw new Error("Gia sư hiện không nhận học viên.");
       const sourceId = typeof data.renewalOf === "string" ? data.renewalOf : "";
       let renewal = false;
       if (sourceId) {
@@ -181,7 +187,7 @@ export async function POST(req: NextRequest) {
       const id = str(data.id, 100), ref = database.doc(`sessions/${id}`);
       await database.runTransaction(async tx => {
         const snap = await tx.get(ref); const session = snap.data();
-        if (!session || session.tutorId !== user.uid || session.status !== "scheduled" || now() > session.end + DAY) throw new Error("Buổi học không thể hủy.");
+        if (!session || session.tutorId !== user.uid || !canCancelSession(session, now())) throw new Error("Chỉ có thể hủy buổi học trước giờ bắt đầu. Sau đó hãy dùng xác nhận hoặc nhờ admin xử lý.");
         const orderRef = session.orderId ? database.doc(`orders/${session.orderId}`) : null;
         const order = orderRef ? (await tx.get(orderRef)).data() : null;
         const tutorCalendarRef = database.doc(`calendars/${session.tutorId}`), studentCalendarRef = database.doc(`calendars/${session.studentId}`);
@@ -219,8 +225,8 @@ export async function POST(req: NextRequest) {
       const bankName = str(data.bankName, 100), bankAccount = str(data.bankAccount, 50), accountHolder = str(data.accountHolder, 100);
       await database.runTransaction(async tx => {
         const refund = (await tx.get(ref)).data();
-        if (!refund || refund.studentId !== user.uid || !["needs_details", "pending"].includes(refund.status)) throw new Error("Yêu cầu hoàn tiền không hợp lệ.");
-        tx.update(ref, { bankName, bankAccount, accountHolder, status: "pending", updatedAt: now() });
+        requireRefundBankSubmission(refund, user.uid);
+        tx.update(ref, { bankName, bankAccount, accountHolder, status: "pending", bankCorrectionReason: FieldValue.delete(), updatedAt: now() });
       });
       return Response.json({ ok: true });
     }
@@ -249,8 +255,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "requestTrial") {
-      const tutorId = str(data.tutorId, 100), tutor = (await database.doc(`tutors/${tutorId}`).get()).data();
-      if (!tutor || !tutorAcceptsNewOrders(tutor.status) || tutorId === user.uid) throw new Error("Gia sư chưa sẵn sàng nhận học thử.");
+      const tutorId = str(data.tutorId, 100);
+      const [tutorSnap, tutorUserSnap] = await Promise.all([database.doc(`tutors/${tutorId}`).get(), database.doc(`users/${tutorId}`).get()]);
+      if (!tutorAcceptsNewOrders(tutorSnap.data()?.status, tutorUserSnap.data()?.blocked === true) || tutorId === user.uid) throw new Error("Gia sư chưa sẵn sàng nhận học thử.");
       const id = `${user.uid}_${tutorId}`;
       await database.doc(`trials/${id}`).create({ studentId: user.uid, tutorId, status: "requested", message: typeof data.message === "string" ? data.message.slice(0, 500) : "", at: now() });
       await notify(tutorId, "Có học viên yêu cầu học thử miễn phí.");
@@ -323,8 +330,8 @@ export async function POST(req: NextRequest) {
           verifiedDocument = candidate.document.publicId;
         }
         const previous = await database.runTransaction(async tx => {
-          const liveRef = database.doc(`tutors/${uid}`), submissionRef = database.doc(`tutorSubmissions/${uid}`), mediaRef = database.doc(`media/${uid}`);
-          const [liveSnap, submissionSnap, mediaSnap] = await Promise.all([tx.get(liveRef), tx.get(submissionRef), tx.get(mediaRef)]);
+          const liveRef = database.doc(`tutors/${uid}`), submissionRef = database.doc(`tutorSubmissions/${uid}`), mediaRef = database.doc(`media/${uid}`), userRef = database.doc(`users/${uid}`);
+          const [liveSnap, submissionSnap, mediaSnap, tutorUserSnap] = await Promise.all([tx.get(liveRef), tx.get(submissionRef), tx.get(mediaRef), tx.get(userRef)]);
           const live = liveSnap.data(), submission = submissionSnap.data(), media = mediaSnap.data();
           const candidate = submission || (live?.status === "pending" ? { ...live, photo: media?.photo, document: media?.document } : null);
           if (!candidate || candidate.status !== "pending") throw new Error("Hồ sơ không còn chờ duyệt.");
@@ -336,7 +343,8 @@ export async function POST(req: NextRequest) {
           if (!candidate.photo || !candidate.document) throw new Error("Cần ảnh chân dung và giấy tờ xác minh trước khi duyệt.");
           if (candidate.photo.publicId !== verifiedPhoto || candidate.document.publicId !== verifiedDocument) throw new Error("Hồ sơ vừa thay đổi. Vui lòng mở lại bản gửi duyệt.");
           const version = now();
-          tx.set(liveRef, approvedTutorUpdate(candidate, live, uid, version), { merge: true });
+          const approved = approvedTutorUpdate(candidate, live, uid, version);
+          tx.set(liveRef, { ...approved, status: tutorUserSnap.data()?.blocked === true ? "suspended" : approved.status }, { merge: true });
           tx.set(mediaRef, { photo: candidate.photo, document: candidate.document, stagedPhoto: FieldValue.delete(), stagedDocument: FieldValue.delete() }, { merge: true });
           if (submission) tx.delete(submissionRef);
           return { oldPhoto: media?.photo as TutorMedia | undefined, oldDocument: media?.document as TutorMedia | undefined, photo: candidate.photo as TutorMedia, document: candidate.document as TutorMedia };
@@ -350,10 +358,12 @@ export async function POST(req: NextRequest) {
         await notify(uid, kind === "approveTutor" ? "Hồ sơ gia sư đã được duyệt." : `Hồ sơ gia sư chưa được duyệt: ${reason}`);
       }
       else if (kind === "suspendTutor" || kind === "restoreTutor") {
-        const uid = str(id, 100), ref = database.doc(`tutors/${uid}`);
+        const uid = str(id, 100), ref = database.doc(`tutors/${uid}`), userRef = database.doc(`users/${uid}`);
         await database.runTransaction(async tx => {
-          const status = (await tx.get(ref)).data()?.status;
+          const [tutorSnap, userSnap] = await Promise.all([tx.get(ref), tx.get(userRef)]);
+          const status = tutorSnap.data()?.status;
           if (status !== (kind === "suspendTutor" ? "approved" : "suspended")) throw new Error("Trạng thái hồ sơ đã thay đổi.");
+          if (kind === "restoreTutor" && userSnap.data()?.blocked === true) throw new Error("Cần mở khóa tài khoản trước khi khôi phục hồ sơ.");
           tx.update(ref, { status: kind === "suspendTutor" ? "suspended" : "approved", updatedAt: now() });
         });
         await notify(uid, kind === "suspendTutor" ? "Hồ sơ gia sư đã được tạm ẩn." : "Hồ sơ gia sư đã được khôi phục.");
@@ -361,7 +371,13 @@ export async function POST(req: NextRequest) {
       else if (kind === "blockUser" || kind === "unblockUser") {
         const uid = str(id, 128);
         if (uid === user.uid) throw new Error("Bạn không thể khóa chính mình.");
-        await database.doc(`users/${uid}`).set({ blocked: kind === "blockUser", updatedAt: now() }, { merge: true });
+        await database.runTransaction(async tx => {
+          const userRef = database.doc(`users/${uid}`), tutorRef = database.doc(`tutors/${uid}`);
+          const [userSnap, tutorSnap] = await Promise.all([tx.get(userRef), tx.get(tutorRef)]);
+          if (!userSnap.exists) throw new Error("Không tìm thấy người dùng.");
+          tx.set(userRef, { blocked: kind === "blockUser", updatedAt: now() }, { merge: true });
+          if (kind === "blockUser" && tutorSnap.data()?.status === "approved") tx.update(tutorRef, { status: "suspended", updatedAt: now() });
+        });
       }
       else if (kind === "hideReview" || kind === "showReview") {
         const ref = database.doc(`reviews/${str(id, 100)}`);
@@ -392,6 +408,16 @@ export async function POST(req: NextRequest) {
           return current;
         });
         await notify(refund.studentId, "Yêu cầu hoàn tiền chưa được duyệt. Xem lý do trong mục Hoàn tiền.");
+      }
+      else if (kind === "requestRefundBankCorrection") {
+        const ref = database.doc(`refunds/${str(id, 100)}`), reason = str(data.reason, 500);
+        const refund = await database.runTransaction(async tx => {
+          const current = (await tx.get(ref)).data();
+          requireRefundBankCorrection(current);
+          tx.update(ref, { status: "needs_details", bankName: FieldValue.delete(), bankAccount: FieldValue.delete(), accountHolder: FieldValue.delete(), bankCorrectionReason: reason, updatedAt: now() });
+          return current;
+        });
+        await notify(refund.studentId, `Vui lòng sửa tài khoản nhận hoàn tiền: ${reason}`);
       }
       else if (kind === "withdrawalComplete" || kind === "withdrawalReject") {
         const ref = database.doc(`withdrawals/${str(id, 100)}`), reference = kind === "withdrawalComplete" ? str(data.reference, 100) : "";

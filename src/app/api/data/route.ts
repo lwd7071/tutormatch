@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import { actor, fail } from "@/lib/server";
-import { expireDue } from "@/lib/expiry";
+import { publicCatalog } from "@/lib/public-data";
 
 export const runtime = "nodejs";
 
@@ -19,24 +19,22 @@ export async function GET(req: NextRequest) {
     if (scope === "public" && !process.env.FIREBASE_SERVICE_ACCOUNT_JSON) return Response.json({ tutors: [], packages: [], subjects: [], reviews: [] });
     const database = db();
     if (scope === "public") {
-      const [tutors, packages, subjects, reviews] = await Promise.all([
+      const [tutors, packages, subjects, reviews, blockedUsers] = await Promise.all([
         database.collection("tutors").where("status", "==", "approved").get(),
         database.collection("packages").where("active", "==", true).get(),
         database.collection("subjects").get(),
         database.collection("reviews").where("status", "==", "visible").get(),
+        database.collection("users").where("blocked", "==", true).get(),
       ]);
-      const approved = rows(tutors);
+      const blockedIds = new Set(blockedUsers.docs.map(doc => doc.id));
+      const approved = rows(tutors).filter(t => !blockedIds.has(t.id));
       const missingPhotos = approved.filter(t => !t.photoUrl);
       const media = await Promise.all(missingPhotos.map(t => database.doc(`media/${t.id}`).get()));
       for (let i = 0; i < missingPhotos.length; i++) if (media[i].data()?.photo) missingPhotos[i].photoUrl = `/api/media/${missingPhotos[i].id}/photo`;
-      const approvedIds = new Set(approved.map(t => t.id));
-      return Response.json({ tutors: approved.map(({ documentUrl, email, ...safe }) => safe), packages: rows(packages).filter(p => approvedIds.has(p.tutorId)), subjects: rows(subjects).filter(s => s.active), reviews: rows(reviews) });
+      return Response.json(publicCatalog(approved, rows(packages), rows(subjects), rows(reviews), blockedIds));
     }
     const user = await actor(req);
-    await Promise.all([
-      database.doc(`users/${user.uid}`).set({ email: user.email, role: user.role, lastSeenAt: Date.now() }, { merge: true }),
-      expireDue(),
-    ]);
+    await database.doc(`users/${user.uid}`).set({ email: user.email, role: user.role, lastSeenAt: Date.now() }, { merge: true });
     const extra = Promise.all([
       user.role === "tutor" ? database.collection("packages").where("tutorId", "==", user.uid).get() : database.collection("packages").limit(0).get(),
       user.role === "tutor" ? database.doc(`wallets/${user.uid}`).get() : Promise.resolve(null),

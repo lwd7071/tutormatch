@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
       const order = snap.data()!;
       if (order.status !== "pending_payment") return;
       if (Number(payload.data.amount) !== order.price || payload.data.code !== "00" || payload.code !== "00") throw new Error("Payment mismatch");
-      const tutor = (await tx.get(db().doc(`tutors/${order.tutorId}`))).data();
-      const unavailable = !tutorAcceptsNewOrders(tutor?.status);
+      const [tutorSnap, tutorUserSnap] = await Promise.all([tx.get(db().doc(`tutors/${order.tutorId}`)), tx.get(db().doc(`users/${order.tutorId}`))]);
+      const unavailable = !tutorAcceptsNewOrders(tutorSnap.data()?.status, tutorUserSnap.data()?.blocked === true);
       tx.update(ref, { status: unavailable ? "refund_pending" : order.renewal ? "active" : "pending_tutor", paidAt: now(), decisionDue: unavailable || order.renewal ? null : now() + DAY, paymentReference: payload.data.reference || "" });
       tx.create(db().collection("ledger").doc(`payment_${orderCode}`), { type: "payment", orderId: String(orderCode), amount: order.price, at: now() });
       if (unavailable) {

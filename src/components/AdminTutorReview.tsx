@@ -29,6 +29,7 @@ function ReviewPhoto({ user, uid, kind, name }: { user: User; uid: string; kind:
 export function AdminTutorReview({ data, run, busy, user }: { data: Row; run: (action: Row) => void; busy: boolean; user: User }) {
   const [error, setError] = useState("");
   const tutors: Row[] = data.tutors || [];
+  const blockedIds = new Set((data.users || []).filter((entry: Row) => entry.blocked).map((entry: Row) => entry.id));
   const pending: Row[] = (data.submissions || []).filter((submission: Row) => submission.status === "pending");
   const labels: [string, string][] = [["name", "Tên hiển thị"], ["mode", "Hình thức"], ["location", "Khu vực"], ["bio", "Giới thiệu"], ["availability", "Lịch rảnh"]];
   const modeLabel = (value: string) => value === "both" ? "Cả hai" : value === "offline" ? "Trực tiếp" : "Trực tuyến";
@@ -56,7 +57,7 @@ export function AdminTutorReview({ data, run, busy, user }: { data: Row; run: (a
       {error && <p className="notice error" role="alert">{error}</p>}
     </div>
     <div className="panel"><h2>Gia sư đã duyệt</h2>
-      {tutors.filter(t => ["approved", "suspended"].includes(t.status)).length ? tutors.filter(t => ["approved", "suspended"].includes(t.status)).map(t => <div className="item" key={t.id}><div className="item-info"><strong>{t.name}</strong><small>{t.email}</small><span className="badge">{t.status === "suspended" ? "Đang tạm ẩn" : "Đang công khai"}</span></div><button className="button button-small button-outline" disabled={busy} onClick={() => run({ action: "admin", kind: t.status === "suspended" ? "restoreTutor" : "suspendTutor", id: t.id })}>{t.status === "suspended" ? "Khôi phục" : "Tạm ẩn"}</button></div>) : <p className="help-text">Chưa có gia sư được duyệt.</p>}
+      {tutors.filter(t => ["approved", "suspended"].includes(t.status)).length ? tutors.filter(t => ["approved", "suspended"].includes(t.status)).map(t => <div className="item" key={t.id}><div className="item-info"><strong>{t.name}</strong><small>{t.email}</small><span className="badge">{blockedIds.has(t.id) ? "Tài khoản bị khóa" : t.status === "suspended" ? "Đang tạm ẩn" : "Đang công khai"}</span></div><button className="button button-small button-outline" disabled={busy || (t.status === "suspended" && blockedIds.has(t.id))} onClick={() => run({ action: "admin", kind: t.status === "suspended" ? "restoreTutor" : "suspendTutor", id: t.id })}>{t.status === "suspended" ? "Khôi phục" : "Tạm ẩn"}</button></div>) : <p className="help-text">Chưa có gia sư được duyệt.</p>}
     </div>
   </div>;
 }

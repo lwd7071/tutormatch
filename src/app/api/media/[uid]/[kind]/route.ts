@@ -11,8 +11,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ uid:
     if (!/^[a-zA-Z0-9_-]{1,128}$/.test(uid) || !["photo", "document", "staged-photo", "staged-document"].includes(kind)) return new Response("Not found", { status: 404 });
     let publicPhoto = false;
     if (kind === "photo") {
-      const tutor = (await db().doc(`tutors/${uid}`).get()).data();
-      publicPhoto = tutor?.status === "approved";
+      const [tutorSnap, userSnap] = await Promise.all([db().doc(`tutors/${uid}`).get(), db().doc(`users/${uid}`).get()]);
+      publicPhoto = tutorSnap.data()?.status === "approved" && userSnap.data()?.blocked !== true;
     }
     if (!publicPhoto) {
       const user = await actor(req);

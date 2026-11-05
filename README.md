@@ -15,13 +15,13 @@ For PDF verification documents on Cloudinary's Free plan, enable **Allow deliver
 
 Tutor applications require a portrait and a verification document (up to 4 MB each). Replacements and profile edits are reviewed as a separate submission while the approved profile stays live. Admins can suspend a tutor to stop new sales and trial requests without deleting existing orders.
 
-Before releasing the revised tutor review flow, run `node scripts/migrate-tutor-profiles.mjs` to inspect legacy pending/rejected profiles and approved profiles missing a photo URL. With a configured service account, run the same command with `--apply` to backfill them. The app keeps a read fallback for legacy pending/rejected profiles; any profile reported under `missingFiles` needs its tutor to reupload both required files before approval.
+For rollout, deploy Firestore indexes first (see below), then deploy this code with its legacy read fallback. Run `node scripts/migrate-tutor-profiles.mjs` with a configured service account. The dry run lists IDs for legacy profiles, missing files, missing photo URLs, and blocked tutors still marked approved. Run `node scripts/migrate-tutor-profiles.mjs --apply`, then run the dry run again and confirm `legacy`, `photoBackfills`, and `blockedApproved` are empty. IDs under `needsUpload` require tutors to upload missing files and resubmit; these profiles become editable after migration. Keep the legacy read fallback until the migration has been verified on production data.
 
 ## Payments
 
 Set `APP_PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, and `PAYOS_CHECKSUM_KEY` when ready. Configure the payOS payment webhook URL to `https://YOUR_DOMAIN/api/payments/webhook`. Redirects never activate an order; only a verified webhook does. Refunds and tutor withdrawals are manual bank transfers recorded by an admin. Verify the money-holding and payout arrangement before taking live payments.
 
-Set `CRON_SECRET` in Vercel for `/api/cron`. The supplied daily Vercel Cron is compatible with Hobby; overdue orders and session confirmations are also reconciled whenever a signed-in user opens the app. Daily Cron can run after the exact 24-hour point, so use a more frequent external scheduler or Vercel Pro if background processing must happen promptly without a visit.
+Set `CRON_SECRET` in Vercel for `/api/cron`. The daily Vercel Cron is compatible with Hobby. Users cannot accept an order or confirm a session after its 24-hour deadline; overdue records move to refund or dispute during the next daily cron run, which can be up to about a day later. Deploy the Firestore indexes in `firestore.indexes.json` before deploying the code (`firebase deploy --only firestore:indexes --project YOUR_FIREBASE_PROJECT_ID`) and wait until both indexes are ready. The cron response includes `changed` and `failed`; investigate nonzero failures in function logs.
 
 ## Checks
 

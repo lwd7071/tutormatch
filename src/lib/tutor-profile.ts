@@ -69,6 +69,6 @@ export function validTutorFile(bytes: Uint8Array, type: string) {
   return false;
 }
 
-export function tutorAcceptsNewOrders(status: unknown) {
-  return status === "approved";
+export function tutorAcceptsNewOrders(status: unknown, blocked = false) {
+  return status === "approved" && !blocked;
 }
