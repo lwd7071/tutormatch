@@ -8,6 +8,7 @@ import { tutorAcceptsNewOrders } from "../src/lib/tutor-profile.ts";
 const require = createRequire(import.meta.url);
 const source = readFileSync("src/app/api/payments/webhook/route.ts", "utf8");
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const paymentCompiled = ts.transpileModule(readFileSync("src/lib/payment-flow.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 
 function webhookWithStore(initial) {
   const store = new Map(Object.entries(initial));
@@ -35,6 +36,19 @@ function webhookWithStore(initial) {
     if (name === "@/lib/payos") return { verifyWebhook: () => true };
     if (name === "@/lib/server") return { DAY: 86_400_000, now: () => 1000 };
     if (name === "@/lib/tutor-profile") return { tutorAcceptsNewOrders };
+    if (name === "@/lib/payment-flow") {
+      const paymentModule = { exports: {} };
+      const paymentRequire = dependency => {
+        if (dependency === "./firebase-admin") return { db: () => database };
+        if (dependency === "./server") return { DAY: 86_400_000, now: () => 1000 };
+        if (dependency === "./tutor-profile") return { tutorAcceptsNewOrders };
+        if (dependency === "./api-response") return { conflict: message => new Error(message) };
+        if (dependency === "./payos") return { paymentEnabled: () => false };
+        return require(dependency);
+      };
+      new Function("require", "module", "exports", paymentCompiled)(paymentRequire, paymentModule, paymentModule.exports);
+      return paymentModule.exports;
+    }
     return require(name);
   };
   new Function("require", "module", "exports", compiled)(mockRequire, module, module.exports);
@@ -60,4 +74,11 @@ test("webhook đưa đơn của gia sư sẵn sàng vào chờ nhận", async ()
   assert.equal((await post(request)).status, 200);
   assert.equal(store.get("orders/123").status, "pending_tutor");
   assert.equal(store.has("refunds/order_123"), false);
+});
+
+test("webhook vẫn ghi nhận tiền nếu lần tạo link trước đó bị đánh dấu lỗi", async () => {
+  const { post, store } = webhookWithStore({ "orders/123": { ...order, status: "payment_error" }, "tutors/tutor": { status: "approved" }, "users/tutor": { blocked: false } });
+  assert.equal((await post(request)).status, 200);
+  assert.equal(store.get("orders/123").status, "pending_tutor");
+  assert.equal(store.get("ledger/payment_123").amount, 5000);
 });

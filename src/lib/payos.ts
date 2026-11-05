@@ -21,7 +21,20 @@ export async function createPaymentLink(input: { orderCode: number; amount: numb
     timeout = setTimeout(() => controller.abort(), timeoutMs(process.env.PAYOS_READ_TIMEOUT, 10000));
     const result = await response.json();
     if (!response.ok || result.code !== "00" || !result.data?.checkoutUrl) throw new Error("Không tạo được liên kết thanh toán.");
-    return result.data.checkoutUrl as string;
+    return { checkoutUrl: result.data.checkoutUrl as string, paymentLinkId: result.data.paymentLinkId as string };
+  } finally { clearTimeout(timeout); }
+}
+
+export async function getPaymentLink(orderCode: number): Promise<{ status: string; amount: number; amountPaid: number; checkoutUrl?: string; paymentLinkId?: string } | null> {
+  if (!paymentEnabled()) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs(process.env.PAYOS_READ_TIMEOUT, 10000));
+  try {
+    const response = await fetch(`${base}/v2/payment-requests/${orderCode}`, { headers: { "x-client-id": process.env.PAYOS_CLIENT_ID!, "x-api-key": process.env.PAYOS_API_KEY! }, signal: controller.signal });
+    if (response.status === 404) return null;
+    const result = await response.json();
+    if (!response.ok || result.code !== "00" || Number(result.data?.orderCode) !== orderCode) throw new Error("Không tra được trạng thái thanh toán.");
+    return { status: result.data.status, amount: Number(result.data.amount), amountPaid: Number(result.data.amountPaid), checkoutUrl: result.data.checkoutUrl, paymentLinkId: result.data.id || result.data.paymentLinkId };
   } finally { clearTimeout(timeout); }
 }
 

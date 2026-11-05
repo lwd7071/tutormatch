@@ -54,6 +54,8 @@ function expiryWithStore(initial, beforeTransaction = () => {}) {
   const mockRequire = name => {
     if (name === "./firebase-admin") return { db: () => database };
     if (name === "./server") return { DAY: 86_400_000, now: () => clock };
+    if (name === "./payment-flow") return { reconcilePendingPayments: async () => ({ changed: 0, failed: 0 }) };
+    if (name === "./listing") return { refreshQueuedListings: async () => ({ changed: 0, failed: 0 }) };
     return require(name);
   };
   new Function("require", "module", "exports", compiled)(mockRequire, module, module.exports);

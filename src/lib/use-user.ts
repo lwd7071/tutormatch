@@ -14,15 +14,40 @@ export function useUser() {
 }
 
 export async function api(user: User, action: Record<string, unknown>) {
+  let orderSlot = "";
+  if (action.action === "createOrder" && !action.idempotencyKey) {
+    orderSlot = `orderAttempt:${action.packageId}:${action.renewalOf || ""}`;
+    const saved = JSON.parse(sessionStorage.getItem(orderSlot) || "null") as { key: string; at: number } | null;
+    const attempt = saved?.key && Date.now() - saved.at < 30 * 60_000 ? saved : { key: crypto.randomUUID(), at: Date.now() };
+    sessionStorage.setItem(orderSlot, JSON.stringify(attempt));
+    action = { ...action, idempotencyKey: attempt.key };
+  }
   const response = await fetch("/api/action", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify(action) });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Thao tác chưa thành công.");
-  return data;
+  const result = await responseData(response, "Thao tác chưa thành công.");
+  if (orderSlot && result.status && result.status !== "pending_payment") sessionStorage.removeItem(orderSlot);
+  return result;
 }
 
 export async function privateData(user: User) {
   const response = await fetch("/api/data?scope=private", { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: "no-store" });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Không tải được dữ liệu.");
-  return data;
+  return responseData(response, "Không tải được dữ liệu.");
+}
+
+export async function pageList(user: User, resource: string, cursor: string) {
+  const query = new URLSearchParams({ resource, cursor });
+  const response = await fetch(`/api/list?${query}`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: "no-store" });
+  return responseData(response, "Không tải được trang dữ liệu tiếp theo.");
+}
+
+export async function chatPage(user: User, threadId: string, cursor?: string) {
+  const query = new URLSearchParams({ threadId });
+  if (cursor) query.set("cursor", cursor);
+  const response = await fetch(`/api/chat?${query}`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: "no-store" });
+  return responseData(response, "Không tải được tin nhắn.");
+}
+
+export async function responseData<T = any>(response: Response, fallback: string): Promise<T> {
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error?.message || fallback);
+  return body.data as T;
 }

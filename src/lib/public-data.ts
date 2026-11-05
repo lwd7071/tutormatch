@@ -1,20 +1,27 @@
 type Row = Record<string, any>;
+export type PublicTutorDto = { id: string; name: string; bio: string; photoUrl: string; mode: "online" | "offline" | "both"; location: string; availability: string };
+export type PublicPackageDto = { id: string; tutorId: string; title: string; subjectId: string; price: number; count: number; durationMinutes: number; mode: "online" | "offline" | "both" };
+export type PublicSubjectDto = { id: string; name: string };
+export type PublicReviewDto = { id: string; tutorId: string; stars: number; text: string };
+export type CatalogItemDto = { tutor: PublicTutorDto; packages: PublicPackageDto[]; rating: number; reviewCount: number };
+export type CatalogPageDto = { items: CatalogItemDto[]; subjects: PublicSubjectDto[]; featured: CatalogItemDto[]; nextCursor: string | null };
+export type TutorDetailDto = { tutor: PublicTutorDto; packages: PublicPackageDto[]; subjects: PublicSubjectDto[]; reviews: PublicReviewDto[]; nextCursor: string | null };
 
-export function publicTutor(tutor: Row) {
+export function publicTutor(tutor: Row): PublicTutorDto {
   const { id, name, bio, photoUrl, mode, location, availability } = tutor;
   return { id, name, bio, photoUrl: photoUrl || "", mode, location: location || "", availability: availability || "" };
 }
 
-export function publicPackage(pack: Row) {
+export function publicPackage(pack: Row): PublicPackageDto {
   const { id, tutorId, title, subjectId, price, count, durationMinutes, mode } = pack;
   return { id, tutorId, title, subjectId, price, count, durationMinutes, mode };
 }
 
-export function publicSubject(subject: Row) {
+export function publicSubject(subject: Row): PublicSubjectDto {
   return { id: subject.id, name: subject.name };
 }
 
-export function publicReview(review: Row) {
+export function publicReview(review: Row): PublicReviewDto {
   const { id, tutorId, stars, text } = review;
   return { id, tutorId, stars, text };
 }

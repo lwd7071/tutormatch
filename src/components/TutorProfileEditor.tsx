@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import { responseData } from "@/lib/use-user";
 
 type Row = Record<string, any>;
 
@@ -44,8 +45,7 @@ export function TutorProfileEditor({ user, data, run, refresh, busy }: {
     try {
       const form = new FormData(); form.append("kind", kind); form.append("file", file);
       const response = await fetch("/api/upload", { method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}` }, body: form });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Tải tệp chưa thành công.");
+      await responseData(response, "Tải tệp chưa thành công.");
       await refresh(user);
       setPreviewEpoch(value => value + 1);
       setMessage(`${kind === "photo" ? "Ảnh" : "Giấy tờ"} đã tải lên. Hãy gửi hồ sơ để admin duyệt.`);

@@ -21,8 +21,23 @@ For rollout, deploy Firestore indexes first (see below), then deploy this code w
 
 Set `APP_PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, and `PAYOS_CHECKSUM_KEY` when ready. Configure the payOS payment webhook URL to `https://YOUR_DOMAIN/api/payments/webhook`. Redirects never activate an order; only a verified webhook does. Refunds and tutor withdrawals are manual bank transfers recorded by an admin. Verify the money-holding and payout arrangement before taking live payments.
 
-Set `CRON_SECRET` in Vercel for `/api/cron`. The daily Vercel Cron is compatible with Hobby. Users cannot accept an order or confirm a session after its 24-hour deadline; overdue records move to refund or dispute during the next daily cron run, which can be up to about a day later. Deploy the Firestore indexes in `firestore.indexes.json` before deploying the code (`firebase deploy --only firestore:indexes --project YOUR_FIREBASE_PROJECT_ID`) and wait until both indexes are ready. The cron response includes `changed` and `failed`; investigate nonzero failures in function logs.
+Set `CRON_SECRET` in Vercel for `/api/cron`. The daily Vercel Cron is compatible with Hobby. Users cannot accept an order or confirm a session after its 24-hour deadline; overdue records move to refund or dispute during the next daily cron run, which can be up to about a day later. The cron also reconciles pending payOS links and retries public listing updates. The cron response includes `changed` and `failed`; investigate nonzero failures in function logs.
+
+## Technical public launch
+
+Use a separate Firebase project, Cloudinary cloud, Vercel environment, and payOS payment channel for integration testing. Keep the staging service account and Cloudinary secret outside Git. payOS has no isolated sandbox, so use a channel under your control and make one small real payment only after mock tests pass. Reconcile the webhook, order state, payment ledger, and refund before taking public payments.
+
+Before switching catalog reads in production:
+
+1. Back up Firestore and verify the backup can be read. Keep payments disabled during the cutover.
+2. Deploy `firestore.indexes.json` with `firebase deploy --only firestore:indexes --project YOUR_FIREBASE_PROJECT_ID` and wait until every new index is `READY`.
+3. Run `npx tsx scripts/migrate-public-listings.ts` to list IDs and counts. This is read only. Compare the expected count with approved, unblocked tutors.
+4. Run `npx tsx scripts/migrate-public-listings.ts --apply` using the service account for the intended project. The script can be rerun and enables the indexed catalog only after verifying every listing. Run the dry run again; `changedCount` and `staleCount` should be zero. Until then the catalog retains its legacy read path.
+5. Run `npm test`, `npm run typecheck`, `npm run build`, and `npm run test:ui` against staging. The UI smoke test covers mobile and desktop public pages and the signed out app; test signed in student, tutor, and admin flows manually in staging.
+6. After deployment monitor API errors by `requestId`, webhook and cron failures, `settings/paymentReconciliation`, pending payment orders, and catalog query read warnings. Leave payments disabled if any new index is building or the migration verification fails.
+
+The `/api/action` route accepts strict, action specific JSON and returns `{ data }` or `{ error: { code, message, fieldErrors? }, requestId }`. Public search returns 24 tutors per page; private lists return 50 records per page. Payment creation uses a client idempotency key. The daily cron checks payOS links that are at least five minutes old; a payOS timeout leaves the order pending for reconciliation instead of declaring it unpaid.
 
 ## Checks
 
-Run `npm test`, `npm run typecheck`, and `npm run build`. For browser smoke checks, start the app with `npm run dev` or `npm start`, then run `npm run test:ui` in another terminal. The UI check covers the mobile homepage, help page, and signed-out app. A live end-to-end payment test requires Firebase credentials and a payOS channel. Never commit `.env.local` or service-account JSON.
+Run `npm test`, `npm run typecheck`, and `npm run build`. For browser smoke checks, start the app with `npm run dev` or `npm start`, then run `npm run test:ui` in another terminal. A live end-to-end payment test requires a separate Firebase project and a payOS channel. Never commit `.env.local` or service-account JSON.

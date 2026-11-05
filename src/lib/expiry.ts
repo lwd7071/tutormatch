@@ -1,5 +1,7 @@
 import { db } from "./firebase-admin";
 import { DAY, now } from "./server";
+import { reconcilePendingPayments } from "./payment-flow";
+import { refreshQueuedListings } from "./listing";
 
 export async function expireDue() {
   const database = db(), cutoff = now();
@@ -39,5 +41,11 @@ export async function expireDue() {
 
   await processDue("orders", "decisionDue", cutoff);
   await processDue("sessions", "end", cutoff - DAY);
+  const payments = await reconcilePendingPayments();
+  changed += payments.changed;
+  failed += payments.failed;
+  const listings = await refreshQueuedListings();
+  changed += listings.changed;
+  failed += listings.failed;
   return { changed, failed };
 }
