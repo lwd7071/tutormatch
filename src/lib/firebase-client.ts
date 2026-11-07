@@ -9,6 +9,10 @@ const config = {
 };
 
 export const firebaseReady = Object.values(config).every(Boolean);
-export const app = firebaseReady ? (getApps().length ? getApp() : initializeApp(config)) : null;
+export const app = firebaseReady
+  ? getApps().length
+    ? getApp()
+    : initializeApp(config)
+  : null;
 export const auth = app ? getAuth(app) : null;
 export const googleProvider = new GoogleAuthProvider();

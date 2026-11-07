@@ -3,5 +3,80 @@ import { Header } from "@/components/Header";
 import { Star } from "@/components/Star";
 
 export default function Help() {
-  return <><Header/><main className="wrap" style={{padding:"55px 0 90px"}}><div className="app-heading"><div><span className="eyebrow">HƯỚNG DẪN TUTORMATCH</span><h1>Học vui, mọi bước rõ ràng</h1><p>Những điều bạn cần biết trước khi bắt đầu.</p></div><Star size={90}/></div><div className="grid-2"><section className="panel"><h2>Dành cho học viên</h2><h3>1. Tìm và mua gói</h3><p>Xem hồ sơ gia sư, chọn buổi lẻ hoặc gói nhiều buổi rồi thanh toán qua payOS. Với lần mua đầu, gia sư có 24 giờ để nhận đơn. Đơn quá hạn được hệ thống rà hằng ngày để chuyển sang hoàn tiền.</p><h3>2. Thống nhất lịch</h3><p>Trao đổi qua tin nhắn. Gia sư tạo buổi học với thời lượng đúng theo gói, bạn xem trong mục Lịch học.</p><h3>3. Xác nhận sau buổi</h3><p>Trong 24 giờ sau khi kết thúc, chọn “Đã học” hoặc “Không diễn ra”. Buổi chỉ được tính khi cả hai xác nhận đã học.</p><h3>4. Hoàn tiền</h3><p>Bạn có thể yêu cầu hoàn phần buổi chưa học khi không còn buổi đã đặt. Cung cấp tài khoản ngân hàng để admin chuyển khoản.</p></section><section className="panel"><h2>Dành cho gia sư</h2><h3>1. Hoàn thiện hồ sơ</h3><p>Tải ảnh, giấy tờ và mô tả kinh nghiệm. Hồ sơ được công khai sau khi admin duyệt.</p><h3>2. Quản lý gói học</h3><p>Đặt giá, số buổi và thời lượng. Chỉ mở bán gói bạn có thể nhận dạy; phản hồi đơn đầu tiên trong 24 giờ.</p><h3>3. Tạo và xác nhận buổi</h3><p>Sau khi thống nhất lịch, bạn tạo buổi học. Nếu cần hủy, hãy làm trước giờ bắt đầu. Sau giờ đó, hai bên xác nhận kết quả hoặc nhờ admin xử lý.</p><h3>4. Rút thu nhập</h3><p>Tiền vào số dư có thể rút sau khi buổi được chốt. Gửi yêu cầu rút và admin sẽ kiểm tra, chuyển khoản.</p></section></div><div className="panel"><h2>Khi hai bên xác nhận khác nhau</h2><p>Buổi học sẽ chuyển cho admin xử lý. Số buổi và tiền học giữ nguyên cho đến khi có quyết định. Bạn có thể dùng lịch sử tin nhắn để giải thích sự việc.</p><Link className="button" href="/app">Vào khu vực của tôi</Link></div></main></>;
+  return (
+    <>
+      <Header />
+      <main className="wrap" style={{ padding: "55px 0 90px" }}>
+        <div className="app-heading">
+          <div>
+            <span className="eyebrow">HƯỚNG DẪN TUTORMATCH</span>
+            <h1>Học vui, mọi bước rõ ràng</h1>
+            <p>Những điều bạn cần biết trước khi bắt đầu.</p>
+          </div>
+          <Star size={90} />
+        </div>
+        <div className="grid-2">
+          <section className="panel">
+            <h2>Dành cho học viên</h2>
+            <h3>1. Tìm và mua gói</h3>
+            <p>
+              Xem hồ sơ gia sư, chọn buổi lẻ hoặc gói nhiều buổi rồi thanh toán
+              qua payOS. Với lần mua đầu, gia sư có 24 giờ để nhận đơn. Đơn quá
+              hạn được hệ thống rà hằng ngày để chuyển sang hoàn tiền.
+            </p>
+            <h3>2. Thống nhất lịch</h3>
+            <p>
+              Trao đổi qua tin nhắn. Gia sư tạo buổi học với thời lượng đúng
+              theo gói, bạn xem trong mục Lịch học.
+            </p>
+            <h3>3. Xác nhận sau buổi</h3>
+            <p>
+              Trong 24 giờ sau khi kết thúc, chọn “Đã học” hoặc “Không diễn ra”.
+              Buổi chỉ được tính khi cả hai xác nhận đã học.
+            </p>
+            <h3>4. Hoàn tiền</h3>
+            <p>
+              Bạn có thể yêu cầu hoàn phần buổi chưa học khi không còn buổi đã
+              đặt. Cung cấp tài khoản ngân hàng để admin chuyển khoản.
+            </p>
+          </section>
+          <section className="panel">
+            <h2>Dành cho gia sư</h2>
+            <h3>1. Hoàn thiện hồ sơ</h3>
+            <p>
+              Tải ảnh, giấy tờ và mô tả kinh nghiệm. Hồ sơ được công khai sau
+              khi admin duyệt.
+            </p>
+            <h3>2. Quản lý gói học</h3>
+            <p>
+              Đặt giá, số buổi và thời lượng. Chỉ mở bán gói bạn có thể nhận
+              dạy; phản hồi đơn đầu tiên trong 24 giờ.
+            </p>
+            <h3>3. Tạo và xác nhận buổi</h3>
+            <p>
+              Sau khi thống nhất lịch, bạn tạo buổi học. Nếu cần hủy, hãy làm
+              trước giờ bắt đầu. Sau giờ đó, hai bên xác nhận kết quả hoặc nhờ
+              admin xử lý.
+            </p>
+            <h3>4. Rút thu nhập</h3>
+            <p>
+              Tiền vào số dư có thể rút sau khi buổi được chốt. Gửi yêu cầu rút
+              và admin sẽ kiểm tra, chuyển khoản.
+            </p>
+          </section>
+        </div>
+        <div className="panel">
+          <h2>Khi hai bên xác nhận khác nhau</h2>
+          <p>
+            Buổi học sẽ chuyển cho admin xử lý. Số buổi và tiền học giữ nguyên
+            cho đến khi có quyết định. Bạn có thể dùng lịch sử tin nhắn để giải
+            thích sự việc.
+          </p>
+          <Link className="button" href="/app">
+            Vào khu vực của tôi
+          </Link>
+        </div>
+      </main>
+    </>
+  );
 }

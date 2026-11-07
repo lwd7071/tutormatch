@@ -18,7 +18,7 @@ Find online or in-person tutors and manage prepaid lesson packages, session conf
 Package money is allocated to tutor earnings only as individual lessons are confirmed by both parties.
 
 ## Capabilities and Constraints
-Google sign-in. Tutors create sessions after agreeing on a time with students. Both confirm within 24 hours after the scheduled end. Missing or conflicting confirmations go to an administrator. payOS handles incoming payments; administrators manually transfer refunds and withdrawals. No homework feature.
+Google sign-in. Public tutor search supports subject, price, mode, weekly availability, and province/ward filters. Guests can save tutors locally; signed-in favorites sync to their account. Students propose a free 60-minute trial slot, which tutors confirm before it reserves either calendar. Tutors create paid sessions after agreeing on a time with students. Both confirm within 24 hours after the scheduled end. Missing or conflicting confirmations go to an administrator. payOS handles incoming payments; administrators manually transfer refunds and withdrawals. No homework feature.
 
 ## Brand Commitments
 Vietnamese-first, bright Gen Z style, cute little star mascot. Accessible on both phone and desktop.

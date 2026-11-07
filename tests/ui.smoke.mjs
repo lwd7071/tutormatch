@@ -2,23 +2,91 @@ import { chromium } from "playwright";
 import { existsSync } from "node:fs";
 
 const systemChrome = "C:/Program Files/Google/Chrome/Application/chrome.exe";
-const browser = await chromium.launch({ headless: true, ...(existsSync(systemChrome) ? { executablePath: systemChrome } : {}) });
+const browser = await chromium.launch({
+  headless: true,
+  ...(existsSync(systemChrome) ? { executablePath: systemChrome } : {}),
+});
 try {
-  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
     const page = await browser.newPage({ viewport });
     const errors = [];
-    page.on("pageerror", error => errors.push(error.message));
-    await page.route("**/api/catalog**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { items: [{ tutor: { id: "sample", name: "Gia sư mẫu", bio: "Dạy Toán", photoUrl: "", mode: "online", location: "" }, packages: [{ id: "pack", tutorId: "sample", title: "Toán cơ bản", subjectId: "math", price: 100000, count: 1, durationMinutes: 60, mode: "online" }] }], subjects: [{ id: "math", name: "Toán" }], featured: [], nextCursor: null } }) }));
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/api/catalog**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            items: [
+              {
+                tutor: {
+                  id: "sample",
+                  name: "Gia sư mẫu",
+                  bio: "Dạy Toán",
+                  photoUrl: "",
+                  mode: "online",
+                  location: "",
+                  availability: "Tối thứ hai",
+                  weeklySlots: [{ day: 1, start: 1080, end: 1200 }],
+                },
+                packages: [
+                  {
+                    id: "pack",
+                    tutorId: "sample",
+                    title: "Toán cơ bản",
+                    subjectId: "math",
+                    price: 100000,
+                    count: 1,
+                    durationMinutes: 60,
+                    mode: "online",
+                  },
+                ],
+                rating: 4.5,
+                reviewCount: 2,
+              },
+            ],
+            subjects: [{ id: "math", name: "Toán" }],
+            featured: [],
+            page: 1,
+            totalPages: 1,
+            totalItems: 1,
+          },
+        }),
+      }),
+    );
     await page.goto("http://localhost:3000", { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: /Gặp đúng gia sư/ }).waitFor();
     await page.getByRole("heading", { name: "Gia sư mẫu" }).waitFor();
-    if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error(`Trang chủ tràn ngang ở ${viewport.width}px.`);
+    await page.getByText("★ 4.5 · 2 lượt").waitFor();
+    await page.getByRole("button", { name: "Lưu Gia sư mẫu" }).click();
+    await page.getByRole("button", { name: "Bỏ lưu Gia sư mẫu" }).waitFor();
+    await page.getByLabel("Ngày rảnh").selectOption("1");
+    await page.getByText(/1 bộ lọc đang áp dụng/).waitFor();
+    await page.getByRole("button", { name: "Gợi ý gia sư hợp mình" }).click();
+    await page.getByRole("heading", { name: "Gia sư nào hợp mình?" }).waitFor();
+    if (
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      )
+    )
+      throw new Error(`Trang chủ tràn ngang ở ${viewport.width}px.`);
     await page.goto("http://localhost:3000/help", { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: /Học vui, mọi bước rõ ràng/ }).waitFor();
+    await page
+      .getByRole("heading", { name: /Học vui, mọi bước rõ ràng/ })
+      .waitFor();
     await page.goto("http://localhost:3000/app", { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "Xin chào bạn!" }).waitFor({ timeout: 10000 });
+    await page
+      .getByRole("heading", { name: "Xin chào bạn!" })
+      .waitFor({ timeout: 10000 });
     if (errors.length) throw new Error(errors.join("\n"));
     await page.close();
   }
-  console.log("Mobile and desktop public pages and signed-out app smoke checks passed.");
-} finally { await browser.close(); }
+  console.log(
+    "Mobile and desktop public pages and signed-out app smoke checks passed.",
+  );
+} finally {
+  await browser.close();
+}
