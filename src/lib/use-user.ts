@@ -33,15 +33,14 @@ export async function privateData(user: User) {
   return responseData(response, "Không tải được dữ liệu.");
 }
 
-export async function pageList(user: User, resource: string, cursor: string) {
-  const query = new URLSearchParams({ resource, cursor });
+export async function pageList(user: User, resource: string, page = 1, view: "queue" | "all" = "queue") {
+  const query = new URLSearchParams({ resource, view, page: String(page) });
   const response = await fetch(`/api/list?${query}`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: "no-store" });
-  return responseData(response, "Không tải được trang dữ liệu tiếp theo.");
+  return responseData(response, "Không tải được trang dữ liệu.");
 }
 
-export async function chatPage(user: User, threadId: string, cursor?: string) {
-  const query = new URLSearchParams({ threadId });
-  if (cursor) query.set("cursor", cursor);
+export async function chatPage(user: User, threadId: string, page = 1) {
+  const query = new URLSearchParams({ threadId, page: String(page) });
   const response = await fetch(`/api/chat?${query}`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: "no-store" });
   return responseData(response, "Không tải được tin nhắn.");
 }
