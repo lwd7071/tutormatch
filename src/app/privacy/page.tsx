@@ -4,8 +4,7 @@ export default function Privacy() {
   return (
     <>
       <Header />
-      <main className="wrap" style={{ maxWidth: 820, padding: "55px 0 90px" }}>
-        <span className="eyebrow">TUTORMATCH</span>
+      <main className="wrap privacy-page">
         <h1>Thông tin về dữ liệu cá nhân</h1>
         <p>
           Biểu mẫu tìm gia sư được lưu trữ bằng Google Forms. Thông tin phụ

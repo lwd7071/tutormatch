@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./styles.css";
+import "./redesign.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ["400", "600", "700"],

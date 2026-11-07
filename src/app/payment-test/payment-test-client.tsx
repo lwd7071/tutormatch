@@ -99,7 +99,7 @@ export default function PaymentTestClient() {
   return (
     <>
       <Header />
-      <main className="wrap" style={{ maxWidth: 700, paddingBlock: 48 }}>
+      <main className="wrap payment-test-page">
         <section className="panel">
           <h1>Kiểm thử thanh toán payOS</h1>
           <p>

@@ -10,37 +10,38 @@ export default function Home() {
         <section className="hero">
           <div className="wrap hero-grid">
             <div className="hero-copy">
-              <div className="eyebrow">✦ HỌC 1–1 THEO CÁCH CỦA BẠN</div>
               <h1>
-                Nhờ TutorMatch tìm gia sư.
+                Gia sư <em>hợp gu.</em>
                 <br />
-                <em>Học vui hết cỡ!</em>
+                Việc học vào guồng.
               </h1>
               <p>
-                Phụ huynh gửi môn học, lớp và lịch mong muốn. TutorMatch sẽ liên
-                hệ trong 1 ngày làm việc để tìm gia sư phù hợp.
+                Nhờ TutorMatch tìm gia sư học 1–1 theo môn, lớp và lịch của bạn.
+                Phụ huynh gửi nhu cầu, chúng mình liên hệ trong 1 ngày làm việc.
               </p>
-              <a className="button hero-cta" href="#gui-yeu-cau">
-                Nhờ tìm gia sư <span aria-hidden>↗</span>
-              </a>
+              <div className="hero-actions">
+                <a className="button hero-cta" href="#gui-yeu-cau">
+                  Nhờ tìm gia sư <span aria-hidden>↗</span>
+                </a>
+                <a className="hero-link" href="#tim-gia-su">
+                  Tự khám phá gia sư <span aria-hidden>↓</span>
+                </a>
+              </div>
               <div className="hero-note">
-                <span className="note-dot" /> Dành cho phụ huynh tìm gia sư online
+                <span className="note-dot" /> Học thử miễn phí sau khi chọn được
+                gia sư
               </div>
             </div>
             <div className="hero-art" aria-hidden="true">
-              <div className="orbit orbit-one" />
-              <div className="orbit orbit-two" />
+              <span className="hero-art-label">MỖI BẠN MỘT NHỊP HỌC</span>
               <div className="hero-star">
-                <Star size={230} mood="wink" />
+                <Star size={300} mood="wink" />
               </div>
-              <span className="float-chip chip-top">
-                ✦ Một buổi, một bước tiến
+              <span className="hero-art-caption">
+                Tìm đúng người dạy.
+                <br />
+                Bắt đầu theo cách của mình.
               </span>
-              <span className="float-chip chip-bottom">
-                ♡ Học theo nhịp của bạn
-              </span>
-              <span className="spark spark-one">✳</span>
-              <span className="spark spark-two">✳</span>
             </div>
           </div>
         </section>
@@ -49,28 +50,27 @@ export default function Home() {
           <div className="wrap">
             <div className="section-heading">
               <div>
-                <span className="eyebrow">ĐƠN GIẢN VÀ RÕ RÀNG</span>
-                <h2>Tìm gia sư, từng bước rõ ràng</h2>
+                <h2>Từ “mình cần giúp” đến buổi học đầu tiên.</h2>
               </div>
             </div>
             <div className="steps">
               <div>
                 <span>01</span>
-                  <h3>Gửi nhu cầu</h3>
+                <h3>Gửi nhu cầu</h3>
                 <p>
                   Phụ huynh cho biết môn, lớp và thời gian học mong muốn.
                 </p>
               </div>
               <div>
                 <span>02</span>
-                  <h3>Nhận tư vấn</h3>
+                <h3>Nhận tư vấn</h3>
                 <p>
                   TutorMatch liên hệ trong 1 ngày làm việc để tìm gia sư phù hợp.
                 </p>
               </div>
               <div>
                 <span>03</span>
-                  <h3>Đề xuất học thử</h3>
+                <h3>Đề xuất học thử</h3>
                 <p>
                   Khi chọn được gia sư, phụ huynh đề xuất giờ học thử để gia sư xác nhận.
                 </p>

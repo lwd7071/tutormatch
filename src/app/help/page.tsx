@@ -6,7 +6,7 @@ export default function Help() {
   return (
     <>
       <Header />
-      <main className="wrap" style={{ padding: "55px 0 90px" }}>
+      <main className="wrap help-page">
         <div className="app-heading">
           <div>
             <span className="eyebrow">HƯỚNG DẪN TUTORMATCH</span>
@@ -15,8 +15,8 @@ export default function Help() {
           </div>
           <Star size={90} />
         </div>
-        <div className="grid-2">
-          <section className="panel">
+        <div className="help-columns">
+          <section className="help-guide">
             <h2>Dành cho học viên</h2>
             <h3>1. Tìm và mua gói</h3>
             <p>
@@ -40,7 +40,7 @@ export default function Help() {
               đặt. Cung cấp tài khoản ngân hàng để admin chuyển khoản.
             </p>
           </section>
-          <section className="panel">
+          <section className="help-guide">
             <h2>Dành cho gia sư</h2>
             <h3>1. Hoàn thiện hồ sơ</h3>
             <p>
@@ -65,7 +65,7 @@ export default function Help() {
             </p>
           </section>
         </div>
-        <div className="panel">
+        <div className="help-callout">
           <h2>Khi hai bên xác nhận khác nhau</h2>
           <p>
             Buổi học sẽ chuyển cho admin xử lý. Số buổi và tiền học giữ nguyên

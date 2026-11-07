@@ -11,6 +11,7 @@ import type {
   PublicSubjectDto,
   TutorDetailDto,
 } from "@/lib/public-data";
+import { sizedTutorPhotoUrl } from "@/lib/photo";
 
 const vnd = (n: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
@@ -100,7 +101,14 @@ function TutorCard({
     <article className="tutor-card">
       <div className="tutor-photo">
         {tutor.photoUrl ? (
-          <img src={tutor.photoUrl} alt={`Ảnh gia sư ${tutor.name}`} />
+          <img
+            src={sizedTutorPhotoUrl(tutor.photoUrl, "card")}
+            alt={`Ảnh gia sư ${tutor.name}`}
+            width={800}
+            height={440}
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <span>{tutor.name.slice(0, 1)}</span>
         )}
@@ -380,6 +388,7 @@ export function Discovery() {
             <p>Chọn điều bạn cần, TutorMatch giúp bạn tìm nhanh hơn.</p>
           </div>
           <div className="search-panel">
+            <div className="search-panel-primary">
             <label>
               <span>Tên gia sư hoặc từ khóa</span>
               <input
@@ -423,6 +432,12 @@ export function Discovery() {
                 placeholder="Không giới hạn"
               />
             </label>
+            </div>
+            <details className="filter-more">
+              <summary>
+                Lọc thêm theo lịch và khu vực <span aria-hidden="true">⌄</span>
+              </summary>
+              <div className="search-panel-extra">
             <label>
               <span>Ngày rảnh</span>
               <select
@@ -485,6 +500,8 @@ export function Discovery() {
                   ))}
               </select>
             </label>
+              </div>
+            </details>
           </div>
           <div className="discovery-tools">
             <span>
@@ -504,7 +521,7 @@ export function Discovery() {
                 setMatches(null);
               }}
             >
-              {quizOpen ? "Đóng gợi ý" : "Gợi ý gia sư hợp mình"}
+              {quizOpen ? "Đóng gợi ý" : "Gợi ý theo tiêu chí"}
             </button>
             {favorites.length > 0 && (
               <button className="text-button" onClick={showCompare}>
@@ -747,7 +764,9 @@ export function Discovery() {
                 Chưa có gia sư khớp bộ lọc này. Gửi nhu cầu để TutorMatch liên hệ
                 khi tìm được người phù hợp.
               </p>
-              <a className="button button-outline" href="#gui-yeu-cau">Nhờ tìm gia sư</a>
+              <a className="button button-outline" href="#gui-yeu-cau">
+                Nhờ tìm gia sư
+              </a>
               <button
                 className="button button-outline"
                 onClick={() => setFilters(empty)}
@@ -769,7 +788,6 @@ export function Discovery() {
         <section className="wrap ranking-section">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">HỌC VIÊN ĐÁNH GIÁ</span>
               <h2>Gia sư được yêu thích</h2>
             </div>
             <p>Xếp theo điểm đánh giá từ các buổi học đã xác nhận.</p>
@@ -794,7 +812,6 @@ export function Discovery() {
       )}
       <section id="gui-yeu-cau" className="match-request-section">
         <div className="wrap">
-          <span className="eyebrow">TUTOR MATCH TÌM GIÚP BẠN</span>
           <h2>Chưa thấy gia sư phù hợp?</h2>
           <p>
             Phụ huynh gửi nhu cầu học online qua biểu mẫu. Đây là yêu cầu tư vấn,
