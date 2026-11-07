@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
+import { Be_Vietnam_Pro } from "next/font/google";
 import "./styles.css";
+
+const beVietnamPro = Be_Vietnam_Pro({
+  weight: ["400", "600", "700"],
+  subsets: ["latin", "vietnamese"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "TutorMatch — Học đúng người, vui đúng nhịp",
@@ -11,7 +18,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" className={beVietnamPro.className}>
       <body>{children}</body>
     </html>
   );
