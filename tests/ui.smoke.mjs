@@ -60,6 +60,15 @@ try {
     );
     await page.goto(baseUrl, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: /Gia sư hợp gu/ }).waitFor();
+    await page.locator(".hero-art").scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector(".hero-star")?.getAttribute("data-motion-active") === "true");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.waitForFunction(() => document.querySelector(".hero-star")?.getAttribute("data-motion-active") === "false");
+    if (await page.locator(".hero-star").evaluate(el => getComputedStyle(el).animationName !== "none"))
+      throw new Error("Ngôi sao vẫn chuyển động trong chế độ giảm chuyển động.");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.locator(".footer").scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector(".hero-star")?.getAttribute("data-motion-active") === "false");
     await page.getByRole("heading", { name: "Chưa thấy gia sư phù hợp?" }).waitFor();
     await page.getByRole("heading", { name: "Gia sư mẫu" }).waitFor();
     await page.getByText("★ 4.5 · 2 lượt").waitFor();

@@ -335,7 +335,47 @@ input::placeholder, textarea::placeholder { color: #627083; opacity: 1; }
   .hero-actions { align-items: stretch; flex-direction: column; }
   .hero-cta { width: 100%; }
 }
+/* Shared motion: visible content is the fallback, including before hydration. */
+.hero-star { animation-play-state: paused; }
+.hero-star[data-motion-active="true"] { animation-play-state: running; }
+.button, .tutor-card, .save-button, .pagination-number, .text-button, .tab, .mobile-nav a {
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease,
+    transform 200ms cubic-bezier(.16, 1, .3, 1), box-shadow 200ms ease;
+}
+.save-button:active, .pagination-number:active { transform: scale(.96); }
+.pagination-number:not(:disabled):hover, .save-button:hover { border-color: var(--blue); }
+.quiz-panel, .compare-panel, .notice, .mobile-more, .settings-page {
+  animation: state-arrive 220ms cubic-bezier(.16, 1, .3, 1);
+}
+.app-main > .panel, .app-main > .grid-2, .app-main > .grid-3 {
+  animation: content-arrive 180ms ease-out;
+}
+@keyframes state-arrive {
+  from { opacity: .5; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes content-arrive { from { opacity: .65; } to { opacity: 1; } }
+@supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) {
+  .filter-more { interpolate-size: allow-keywords; }
+  .filter-more::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size 220ms ease, content-visibility 220ms allow-discrete;
+  }
+  .filter-more[open]::details-content { block-size: auto; }
+}
+@media (hover: none), (pointer: coarse) {
+  .button:hover, .tutor-card:hover { transform: none; }
+  .tutor-card:hover { box-shadow: none; }
+  .button:active { transform: scale(.98); }
+}
 @media (prefers-reduced-motion: reduce) {
-  .hero-star { animation: none; }
-  .button, .tutor-card, .filter-more summary span { transition: none; }
+  html { scroll-behavior: auto; }
+  .hero-star, .quiz-panel, .compare-panel, .notice, .mobile-more, .settings-page,
+  .app-main > .panel, .app-main > .grid-2, .app-main > .grid-3 { animation: none; }
+  .button, .tutor-card, .save-button, .pagination-number, .filter-more summary span {
+    transition-property: color, background-color, border-color;
+  }
+  .button:hover, .button:active, .tutor-card:hover, .save-button:active, .pagination-number:active { transform: none; }
+  .filter-more::details-content { transition: none; }
 }

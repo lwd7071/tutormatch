@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Motion } from "@/components/Motion";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./styles.css";
 import "./redesign.css";
@@ -28,7 +29,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" className={beVietnamPro.className}>
-      <body>{children}</body>
+      <body>{children}<Motion /></body>
     </html>
   );
 }

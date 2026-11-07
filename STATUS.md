@@ -54,3 +54,9 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Thiết kế lại trang chủ, khám phá và hồ sơ gia sư theo hướng editorial vui nhộn; đồng bộ màu, thành phần chung, trang hướng dẫn, bảo mật, kiểm thử thanh toán và khu vực làm việc. Giữ nguyên cấu hình Be Vietnam Pro và các luồng API hiện có.
 - Kiểm tra: `npm run typecheck`, `npm run build`, `npm test` (37/37), UI smoke trên điện thoại và máy tính; kiểm tra tràn ngang các trang công khai ở độ rộng 320–1440 px và xem ảnh chụp trang chủ, hồ sơ gia sư, hướng dẫn.
 - Giới hạn: Chưa kiểm tra trực quan khu vực học viên, gia sư và quản trị bằng tài khoản thật; biểu mẫu nhờ tìm gia sư chỉ mở khi quản trị viên đã cấu hình Google Form.
+
+### 2026-11-07 — Thêm chuyển động UX
+
+- Hoàn thành: Thêm hiệu ứng xuất hiện khi cuộn cho nội dung và thẻ gia sư, phản hồi nút lưu, chuyển trạng thái và mở bộ lọc; thống nhất hover/nhấn. Ngôi sao dừng khi ra ngoài màn hình hoặc tab bị ẩn; hỗ trợ giảm chuyển động và nội dung hiển thị mặc định khi JavaScript không hoạt động.
+- Kiểm tra: Typecheck, production build và UI smoke mobile/desktop đã qua; bổ sung kiểm tra ngôi sao dừng ngoài màn hình và chế độ giảm chuyển động. Build cần chạy ngoài sandbox vì Turbopack bị chặn tạo junction trên Windows.
+- Giới hạn: Chưa đo độ mượt trên điện thoại cấu hình thấp thật hoặc kiểm tra các vai trò đăng nhập bằng tài khoản thật; chuyển tiếp bộ lọc phụ thuộc hỗ trợ trình duyệt và có phương án mở/đóng tức thì.
