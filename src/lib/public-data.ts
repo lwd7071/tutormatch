@@ -42,6 +42,7 @@ export type CatalogPageDto = {
   page: number;
   totalPages: number;
   totalItems: number;
+  matchFormUrl: string;
 };
 export type TutorDetailDto = {
   tutor: PublicTutorDto;
@@ -56,6 +57,7 @@ export type TutorDetailDto = {
   reviewTotalItems: number;
   rating: number;
   reviewCount: number;
+  purchaseEnabled: boolean;
 };
 
 export function publicTutor(tutor: Row): PublicTutorDto {

@@ -174,7 +174,8 @@ export function Discovery() {
   const [filters, setFilters] = useState<Filters>(empty),
     [items, setItems] = useState<CatalogItemDto[]>([]),
     [subjects, setSubjects] = useState<PublicSubjectDto[]>([]),
-    [featured, setFeatured] = useState<CatalogItemDto[]>([]);
+    [featured, setFeatured] = useState<CatalogItemDto[]>([]),
+    [matchFormUrl, setMatchFormUrl] = useState("");
   const [pageNumber, setPageNumber] = useState(1),
     [totalPages, setTotalPages] = useState(0),
     [loading, setLoading] = useState(true),
@@ -221,6 +222,7 @@ export function Discovery() {
             setItems(page.items);
             setSubjects(page.subjects);
             setFeatured(page.featured);
+            setMatchFormUrl(page.matchFormUrl || "");
             setPageNumber(page.page);
             setTotalPages(page.totalPages);
           })
@@ -742,9 +744,10 @@ export function Discovery() {
               <Star size={82} mood="sleep" />
               <h3>Chưa có gia sư phù hợp</h3>
               <p>
-                Thử đổi bộ lọc, hoặc quay lại khi gia sư đầu tiên được duyệt
-                nhé.
+                Chưa có gia sư khớp bộ lọc này. Gửi nhu cầu để TutorMatch liên hệ
+                khi tìm được người phù hợp.
               </p>
+              <a className="button button-outline" href="#gui-yeu-cau">Nhờ tìm gia sư</a>
               <button
                 className="button button-outline"
                 onClick={() => setFilters(empty)}
@@ -789,6 +792,23 @@ export function Discovery() {
           </div>
         </section>
       )}
+      <section id="gui-yeu-cau" className="match-request-section">
+        <div className="wrap">
+          <span className="eyebrow">TUTOR MATCH TÌM GIÚP BẠN</span>
+          <h2>Chưa thấy gia sư phù hợp?</h2>
+          <p>
+            Phụ huynh gửi nhu cầu học online qua biểu mẫu. Đây là yêu cầu tư vấn,
+            chưa phải lịch học đã được xác nhận.
+          </p>
+          {matchFormUrl ? (
+            <a className="button" href={matchFormUrl} target="_blank" rel="noreferrer">
+              Mở biểu mẫu tìm gia sư <span aria-hidden>↗</span>
+            </a>
+          ) : (
+            <p className="help-text">Biểu mẫu sẽ được mở khi TutorMatch sẵn sàng nhận yêu cầu.</p>
+          )}
+        </div>
+      </section>
     </>
   );
 }

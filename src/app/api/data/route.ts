@@ -368,7 +368,10 @@ export async function GET(req: NextRequest) {
       tutors: dataDtos("tutor", allTutors, user.role),
       subjects: dataDtos("subject", rows(subjects), user.role),
       reviews: dataDtos("review", rows(reviews), user.role),
-      settings: { feeRate: settings?.data()?.feeRate ?? 10 },
+      settings: {
+        feeRate: settings?.data()?.feeRate ?? 10,
+        matchFormUrl: settings?.data()?.matchFormUrl || "",
+      },
       summary,
     });
   } catch (error) {

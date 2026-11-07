@@ -53,6 +53,15 @@ test("schema từ chối cờ sai kiểu, mode lạ và trường không khai b�
   );
 });
 
+test("admin chỉ lưu link HTTPS thuộc Google Forms", () => {
+  const action = (url) =>
+    actionSchema.safeParse({ action: "admin", kind: "matchFormUrl", url });
+  assert.equal(action("https://docs.google.com/forms/d/e/abc/viewform").success, true);
+  assert.equal(action("").success, true);
+  assert.equal(action("https://example.com/forms/abc").success, false);
+  assert.equal(action("http://docs.google.com/forms/abc").success, false);
+});
+
 test("request quá lớn và JSON sai trả lỗi nhập liệu", async () => {
   await assert.rejects(
     parseActionRequest(

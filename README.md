@@ -31,6 +31,8 @@ Sign in as admin at `/payment-test` on staging and select **Tạo QR 2.000đ**. 
 
 ## Technical public launch
 
+To add the parent intake form, open **Thiết lập → Form tìm gia sư** in the admin dashboard and save the public Google Forms URL. The home page shows its link after it is saved. Responses are collected and managed in Google Forms for manual follow-up.
+
 Use a separate Firebase project, Cloudinary cloud, Vercel environment, and payOS payment channel for integration testing. Keep the staging service account and Cloudinary secret outside Git. payOS has no isolated sandbox, so use a channel under your control and make one small real payment only after mock tests pass. Reconcile the webhook, order state, payment ledger, and refund before taking public payments.
 
 Before switching catalog reads in production:

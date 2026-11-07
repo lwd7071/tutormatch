@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 import { existsSync } from "node:fs";
 
 const systemChrome = "C:/Program Files/Google/Chrome/Application/chrome.exe";
+const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 const browser = await chromium.launch({
   headless: true,
   ...(existsSync(systemChrome) ? { executablePath: systemChrome } : {}),
@@ -57,8 +58,9 @@ try {
         }),
       }),
     );
-    await page.goto("http://localhost:3000", { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: /Gặp đúng gia sư/ }).waitFor();
+    await page.goto(baseUrl, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: /Nhờ TutorMatch tìm gia sư/ }).waitFor();
+    await page.getByRole("heading", { name: "Chưa thấy gia sư phù hợp?" }).waitFor();
     await page.getByRole("heading", { name: "Gia sư mẫu" }).waitFor();
     await page.getByText("★ 4.5 · 2 lượt").waitFor();
     await page.getByRole("button", { name: "Lưu Gia sư mẫu" }).click();
@@ -73,11 +75,13 @@ try {
       )
     )
       throw new Error(`Trang chủ tràn ngang ở ${viewport.width}px.`);
-    await page.goto("http://localhost:3000/help", { waitUntil: "networkidle" });
+    await page.goto(`${baseUrl}/help`, { waitUntil: "networkidle" });
     await page
       .getByRole("heading", { name: /Học vui, mọi bước rõ ràng/ })
       .waitFor();
-    await page.goto("http://localhost:3000/app", { waitUntil: "networkidle" });
+    await page.goto(`${baseUrl}/privacy`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Thông tin về dữ liệu cá nhân" }).waitFor();
+    await page.goto(`${baseUrl}/app`, { waitUntil: "networkidle" });
     await page
       .getByRole("heading", { name: "Xin chào bạn!" })
       .waitFor({ timeout: 10000 });

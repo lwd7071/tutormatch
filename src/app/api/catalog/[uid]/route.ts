@@ -1,6 +1,7 @@
 import { FieldPath } from "firebase-admin/firestore";
 import { NextRequest } from "next/server";
 import { db } from "@/lib/firebase-admin";
+import { paymentEnabled } from "@/lib/payos";
 import { fail } from "@/lib/server";
 import { invalid, success, ApiError } from "@/lib/api-response";
 import {
@@ -82,6 +83,7 @@ export async function GET(
       reviewTotalItems: reviewResult.totalItems,
       rating: listingSnap.data()?.rating || 0,
       reviewCount: listingSnap.data()?.reviewCount || 0,
+      purchaseEnabled: paymentEnabled(),
     });
   } catch (error) {
     return fail(error);

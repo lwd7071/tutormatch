@@ -9,9 +9,17 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "TutorMatch — Học đúng người, vui đúng nhịp",
-  description:
-    "Tìm gia sư 1–1 trực tuyến hoặc trực tiếp và theo dõi từng buổi học rõ ràng.",
+  title: "Tìm gia sư online cho học sinh | TutorMatch",
+    description:
+      "Phụ huynh gửi nhu cầu tìm gia sư online theo môn, lớp và lịch học. TutorMatch liên hệ trong 1 ngày làm việc.",
+  openGraph: {
+    title: "Nhờ TutorMatch tìm gia sư online",
+    description:
+      "Gửi môn học, lớp và lịch mong muốn. TutorMatch liên hệ phụ huynh trong 1 ngày làm việc.",
+    siteName: "TutorMatch",
+    locale: "vi_VN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

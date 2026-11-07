@@ -12,19 +12,19 @@ export default function Home() {
             <div className="hero-copy">
               <div className="eyebrow">✦ HỌC 1–1 THEO CÁCH CỦA BẠN</div>
               <h1>
-                Gặp đúng gia sư.
+                Nhờ TutorMatch tìm gia sư.
                 <br />
                 <em>Học vui hết cỡ!</em>
               </h1>
               <p>
-                Tìm người đồng hành hợp môn, hợp lịch, hợp cả cách bạn học. Mỗi
-                buổi học và khoản tiền đều được theo dõi rõ ràng.
+                Phụ huynh gửi môn học, lớp và lịch mong muốn. TutorMatch sẽ liên
+                hệ trong 1 ngày làm việc để tìm gia sư phù hợp.
               </p>
-              <a className="button hero-cta" href="#tim-gia-su">
-                Tìm gia sư hợp mình <span aria-hidden>↗</span>
+              <a className="button hero-cta" href="#gui-yeu-cau">
+                Nhờ tìm gia sư <span aria-hidden>↗</span>
               </a>
               <div className="hero-note">
-                <span className="note-dot" /> Học trực tuyến hoặc gặp trực tiếp
+                <span className="note-dot" /> Dành cho phụ huynh tìm gia sư online
               </div>
             </div>
             <div className="hero-art" aria-hidden="true">
@@ -50,30 +50,29 @@ export default function Home() {
             <div className="section-heading">
               <div>
                 <span className="eyebrow">ĐƠN GIẢN VÀ RÕ RÀNG</span>
-                <h2>Học vui, theo dõi dễ</h2>
+                <h2>Tìm gia sư, từng bước rõ ràng</h2>
               </div>
             </div>
             <div className="steps">
               <div>
                 <span>01</span>
-                <h3>Chọn gia sư</h3>
+                  <h3>Gửi nhu cầu</h3>
                 <p>
-                  Xem hồ sơ và gói học, rồi chọn người hợp mục tiêu của bạn.
+                  Phụ huynh cho biết môn, lớp và thời gian học mong muốn.
                 </p>
               </div>
               <div>
                 <span>02</span>
-                <h3>Thống nhất lịch</h3>
+                  <h3>Nhận tư vấn</h3>
                 <p>
-                  Sau khi mua, hai bên trao đổi để gia sư tạo từng buổi học.
+                  TutorMatch liên hệ trong 1 ngày làm việc để tìm gia sư phù hợp.
                 </p>
               </div>
               <div>
                 <span>03</span>
-                <h3>Xác nhận buổi học</h3>
+                  <h3>Đề xuất học thử</h3>
                 <p>
-                  Hai bên xác nhận sau buổi; số buổi và tiền học được cập nhật
-                  rõ ràng.
+                  Khi chọn được gia sư, phụ huynh đề xuất giờ học thử để gia sư xác nhận.
                 </p>
               </div>
             </div>

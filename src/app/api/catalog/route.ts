@@ -232,6 +232,7 @@ export async function GET(req: NextRequest) {
       page: pagination.page,
       totalPages: pagination.totalPages,
       totalItems: pagination.totalItems,
+      matchFormUrl: settingsSnap.data()?.matchFormUrl || "",
     });
   } catch (error) {
     return fail(error);

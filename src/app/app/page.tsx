@@ -232,6 +232,10 @@ function WorkspaceContent() {
   const tab = tabs.some(([key]) => key === requestedTab)
     ? requestedTab
     : "overview";
+  const settingsSection =
+    ["fee", "matchForm"].includes(searchParams.get("section") || "")
+      ? searchParams.get("section")!
+      : "subjects";
   const tabResources: Record<string, string[]> =
     role === "admin"
       ? {
@@ -240,7 +244,7 @@ function WorkspaceContent() {
           money: ["refunds", "withdrawals"],
           users: ["users"],
           reviews: ["reviews"],
-          settings: ["subjects"],
+          settings: settingsSection === "subjects" ? ["subjects"] : [],
         }
       : role === "tutor"
         ? {
@@ -626,8 +630,48 @@ function WorkspaceContent() {
                     </div>
                   )}
                   {tab === "settings" && (
-                    <SubjectTools data={data} run={run} busy={busy} />
-                  )}{" "}
+                    <>
+                      <nav
+                        className="settings-subnav"
+                        aria-label="Mục thiết lập"
+                      >
+                        {([
+                          ["subjects", "Môn học"],
+                          ["fee", "Phí nền tảng"],
+                          ["matchForm", "Form tìm gia sư"],
+                        ] as const).map(([section, label]) => (
+                          <Link
+                            key={section}
+                            href={`/app?tab=settings&section=${section}`}
+                            scroll={false}
+                            aria-current={
+                              settingsSection === section ? "page" : undefined
+                            }
+                            className={`settings-subnav-link${
+                              settingsSection === section ? " active" : ""
+                            }`}
+                          >
+                            {label}
+                          </Link>
+                        ))}
+                      </nav>
+                      <div key={settingsSection} className="settings-page">
+                        {settingsSection === "subjects" ? (
+                          <SubjectTools data={data} run={run} busy={busy} />
+                        ) : settingsSection === "fee" ? (
+                          <AdminView
+                            tab="settings"
+                            data={shownData || data}
+                            run={run}
+                            busy={busy}
+                            user={user}
+                          />
+                        ) : (
+                          <MatchFormSettings data={data} run={run} busy={busy} />
+                        )}
+                      </div>
+                    </>
+                  )}
                   {tab === "money" && (
                     <RefundReviewTools
                       data={shownData || data}
@@ -635,13 +679,15 @@ function WorkspaceContent() {
                       busy={busy}
                     />
                   )}
-                  <AdminView
-                    tab={tab}
-                    data={shownData || data}
-                    run={run}
-                    busy={busy}
-                    user={user}
-                  />
+                  {tab !== "settings" && (
+                    <AdminView
+                      tab={tab}
+                      data={shownData || data}
+                      run={run}
+                      busy={busy}
+                      user={user}
+                    />
+                  )}
                 </>
               )}
               {(tabResources[tab] || []).map((resource) => {
@@ -800,6 +846,44 @@ function CreatePackageForm({
             Mở bán gói
           </button>
         </div>
+      </form>
+    </div>
+  );
+}
+
+function MatchFormSettings({
+  data,
+  run,
+  busy,
+}: {
+  data: Row;
+  run: (a: Row, s?: string) => void;
+  busy: boolean;
+}) {
+  return (
+    <div className="panel">
+      <h2>Biểu mẫu tìm gia sư</h2>
+      <p>Dán link Google Forms để hiện nút gửi nhu cầu trên trang chủ. Xóa link để tạm ẩn nút.</p>
+      <form
+        className="form-actions"
+        onSubmit={(event) => {
+          const value = values(event).url;
+          run(
+            { action: "admin", kind: "matchFormUrl", url: String(value || "") },
+            "Đã lưu link biểu mẫu.",
+          );
+        }}
+      >
+        <label className="field" style={{ flex: 1, minWidth: 260 }}>
+          <span>Link Google Forms</span>
+          <input
+            name="url"
+            type="url"
+            defaultValue={data.settings?.matchFormUrl || ""}
+            placeholder="https://docs.google.com/forms/d/e/.../viewform"
+          />
+        </label>
+        <button className="button" disabled={busy}>Lưu link</button>
       </form>
     </div>
   );
@@ -2167,49 +2251,24 @@ function AdminView({
       </>
     );
   return (
-    <>
-      <div className="panel">
-        <h2>Môn học</h2>
-        <div className="stack">
-          {(data.subjects || []).map((s: Row) => (
-            <span className="badge" key={s.id}>
-              {s.name}
-            </span>
-          ))}
-        </div>
-        <form
-          onSubmit={(e) => {
-            const v = values(e);
-            run({ action: "admin", kind: "subject", name: v.name });
-            e.currentTarget.reset();
-          }}
-          className="form-actions"
-        >
-          {field("name", "Tên môn mới")}
-          <button className="button" disabled={busy}>
-            Thêm môn
-          </button>
-        </form>
-      </div>
-      <div className="panel">
-        <h2>Phí nền tảng</h2>
-        <p className="help-text">
-          Tỷ lệ này được lưu tại thời điểm học viên mua gói. Mặc định 10% nếu
-          chưa đặt.
-        </p>
-        <form
-          onSubmit={(e) => {
-            const v = values(e);
-            run({ action: "admin", kind: "fee", feeRate: Number(v.feeRate) });
-          }}
-          className="form-actions"
-        >
-          {field("feeRate", "Phần trăm phí", "number", "10")}
-          <button className="button" disabled={busy}>
-            Lưu tỷ lệ
-          </button>
-        </form>
-      </div>
-    </>
+    <div className="panel">
+      <h2>Phí nền tảng</h2>
+      <p className="help-text">
+        Tỷ lệ này được lưu tại thời điểm học viên mua gói. Mặc định 10% nếu
+        chưa đặt.
+      </p>
+      <form
+        onSubmit={(e) => {
+          const v = values(e);
+          run({ action: "admin", kind: "fee", feeRate: Number(v.feeRate) });
+        }}
+        className="form-actions"
+      >
+        {field("feeRate", "Phần trăm phí", "number", "10")}
+        <button className="button" disabled={busy}>
+          Lưu tỷ lệ
+        </button>
+      </form>
+    </div>
   );
 }

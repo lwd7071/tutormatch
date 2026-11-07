@@ -263,9 +263,11 @@ h1 em {
   }
 }
 .search-section,
-.how-section {
+.how-section,
+.match-request-section {
   padding: 90px 0;
 }
+.match-request-section { background: #eef4f7; }
 .section-heading {
   display: flex;
   align-items: flex-end;
@@ -499,6 +501,48 @@ h1 em {
   background: var(--ink);
   color: white;
   border-color: var(--ink);
+}
+.settings-subnav {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 16px;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.settings-subnav-link:hover,
+.settings-subnav-link.active {
+  color: var(--ink);
+}
+.settings-subnav-link.active {
+  border-bottom-color: var(--blue);
+}
+.settings-subnav-link:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+.settings-page {
+  animation: settings-page-enter 160ms ease both;
+}
+@keyframes settings-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .panel {
   background: white;
@@ -812,7 +856,8 @@ h1 em {
     bottom: 12px;
   }
   .search-section,
-  .how-section {
+  .how-section,
+  .match-request-section {
     padding: 60px 0;
   }
   .section-heading {
@@ -897,6 +942,9 @@ h1 em {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .settings-page {
+    animation: none;
+  }
   html {
     scroll-behavior: auto;
   }
@@ -1119,7 +1167,8 @@ body {
     grid-template-columns: 1fr;
   }
   .search-section,
-  .how-section {
+  .how-section,
+  .match-request-section {
     padding: 52px 0;
   }
   .section-heading h2 {

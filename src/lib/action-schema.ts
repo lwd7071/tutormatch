@@ -34,6 +34,19 @@ const admin = z.discriminatedUnion("kind", [
   }),
   z.strictObject({
     action: z.literal("admin"),
+    kind: z.literal("matchFormUrl"),
+    url: z.string().trim().max(500).refine((value) => {
+      if (!value) return true;
+      try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname === "docs.google.com" && url.pathname.startsWith("/forms/");
+      } catch {
+        return false;
+      }
+    }, "Chỉ nhận link Google Forms hợp lệ."),
+  }),
+  z.strictObject({
+    action: z.literal("admin"),
     kind: z.literal("approveTutor"),
     id,
   }),

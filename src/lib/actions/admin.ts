@@ -30,6 +30,10 @@ export async function handleAdmin(
     await database
       .doc("settings/main")
       .set({ feeRate: integer(data.feeRate, 0, 100) }, { merge: true });
+  } else if (kind === "matchFormUrl") {
+    await database
+      .doc("settings/main")
+      .set({ matchFormUrl: data.url.trim() }, { merge: true });
   } else if (kind === "approveTutor" || kind === "rejectTutor") {
     const uid = str(id, 100),
       reason = kind === "rejectTutor" ? str(data.reason, 500) : "";
