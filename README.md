@@ -19,9 +19,9 @@ For rollout, deploy Firestore indexes first (see below), then deploy this code w
 
 ## Payments
 
-Set `APP_PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, and `PAYOS_CHECKSUM_KEY` when ready. Configure the payOS payment webhook URL to `https://YOUR_DOMAIN/api/payments/webhook`. Redirects never activate an order; only a verified webhook does. Refunds and tutor withdrawals are manual bank transfers recorded by an admin. Verify the money-holding and payout arrangement before taking live payments.
+Set `APP_PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, and `PAYOS_CHECKSUM_KEY` when ready. Configure the payOS payment webhook URL to `https://YOUR_DOMAIN/api/payments/webhook`. Redirects never activate an order; payment is confirmed by the verified webhook or an admin check against payOS. Refunds and tutor withdrawals are manual bank transfers recorded by an admin. Verify the money-holding and payout arrangement before taking live payments.
 
-Set `CRON_SECRET` in Vercel for `/api/cron`. The daily Vercel Cron is compatible with Hobby. Users cannot accept an order or confirm a session after its 24-hour deadline; overdue records move to refund or dispute during a later cron run. Payment reconciliation, overdue orders, overdue sessions, and listing refresh each have a separate cursor and time budget. The cron response reports `changed`, `failed`, and `groups`; investigate failures and `more: true` in function logs. An admin can run another bounded group through the dashboard.
+Admin reviews pending payOS payments, overdue tutor responses, overdue lesson confirmations, and queued search updates from **Cần rà soát** in the dashboard. Each item is processed individually; payment status is checked with payOS, and only a verified webhook or payOS response can mark an order paid. Overdue orders and sessions remain subject to their 24-hour deadlines and wait for an admin to process them. Refund transfers remain manual.
 
 ### Staging QR payment check
 

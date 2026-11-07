@@ -3,10 +3,6 @@ import { FieldPath } from "firebase-admin/firestore";
 import { buildListing, offerRows } from "./listing-core";
 export { buildListing, matchingPackages, words } from "./listing-core";
 
-export function queueListing(tx: FirebaseFirestore.Transaction, uid: string) {
-  tx.set(db().doc(`listingJobs/${uid}`), { updatedAt: Date.now() });
-}
-
 type ListingChanges = {
   tutor?: Record<string, any>;
   user?: Record<string, any>;

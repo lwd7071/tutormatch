@@ -6,7 +6,7 @@ import { conflict, success } from "../api-response";
 import { moneyForSession } from "../money";
 import { approvedTutorUpdate, type TutorMedia } from "../tutor-profile";
 import { requireRefundBankCorrection } from "../refund-state";
-import { queueListing, stageListing } from "../listing";
+import { stageListing } from "../listing";
 import { notify } from "./common";
 import { type ActionInput } from "../action-schema";
 
@@ -105,6 +105,10 @@ export async function handleAdmin(
       if (!candidate || candidate.status !== "pending")
         throw conflict("Hồ sơ không còn chờ duyệt.");
       if (kind === "rejectTutor") {
+        if (!submission && liveSnap.exists)
+          await stageListing(tx, uid, {
+            tutor: { ...liveSnap.data(), status: "rejected" },
+          });
         tx.set(submissionRef, {
           ...candidate,
           status: "rejected",
@@ -114,7 +118,6 @@ export async function handleAdmin(
         });
         if (!submission && liveSnap.exists)
           tx.update(liveRef, { status: "rejected", reviewedAt: now() });
-        if (!submission && liveSnap.exists) queueListing(tx, uid);
         notify(tx, uid, `Hồ sơ gia sư chưa được duyệt: ${reason}`);
         return null;
       }

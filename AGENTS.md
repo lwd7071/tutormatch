@@ -7,3 +7,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Nhật ký công việc
+
+Sau khi hoàn thành mỗi việc trong repo, thêm một mục vào cuối `STATUS.md` trước khi báo kết quả. Ghi ngày theo giờ Việt Nam, việc đã hoàn thành, cách đã kiểm tra và giới hạn còn lại. Chỉ ghi kết quả đã xác nhận; nếu chưa chạy kiểm tra, ghi rõ "Chưa chạy". Không ghi việc đang làm như đã hoàn thành. Nếu việc tương ứng một commit, thêm mã commit vào tiêu đề. Giữ các mục cũ để theo dõi lịch sử.
+
+Mẫu:
+
+```md
+### YYYY-MM-DD — Tên việc
+
+- Hoàn thành: ...
+- Kiểm tra: ...
+- Giới hạn: ...
+```

@@ -142,67 +142,12 @@ function WorkspaceContent() {
       setBusy(false);
     }
   }
-  async function reconcilePayments() {
-    if (!user) return;
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/payments/reconcile", {
-        method: "POST",
-        headers: { authorization: `Bearer ${await user.getIdToken()}` },
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.error?.message || "Không đối soát được thanh toán.",
-        );
-      await refresh(user);
-      setMessage(
-        `Đối soát: ${result.data.changed} đơn cập nhật, ${result.data.failed} lỗi.`,
-      );
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Không đối soát được thanh toán.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function runCronGroup(group: "orders" | "sessions" | "listings") {
-    if (!user) return;
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/cron/run", {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${await user.getIdToken()}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ group }),
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error?.message || "Không chạy được lô xử lý.");
-      await refresh(user);
-      setMessage(
-        `Đã xử lý ${result.data.changed} mục; ${result.data.failed} lỗi${result.data.more ? ", còn việc chờ" : ""}.`,
-      );
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Không chạy được lô xử lý.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
   const role = data?.user?.role || "student";
   const tabs =
     role === "admin"
       ? [
           ["overview", "Tổng quan"],
+          ["work", "Cần rà soát"],
           ["tutors", "Duyệt gia sư"],
           ["disputes", "Buổi tranh chấp"],
           ["money", "Hoàn & rút tiền"],
@@ -573,38 +518,7 @@ function WorkspaceContent() {
               )}
               {role === "admin" && (
                 <>
-                  {tab === "overview" && (
-                    <div className="item-actions">
-                      <button
-                        className="button button-outline"
-                        disabled={busy}
-                        onClick={() => void reconcilePayments()}
-                      >
-                        Đối soát thanh toán
-                      </button>
-                      <button
-                        className="button button-outline"
-                        disabled={busy}
-                        onClick={() => void runCronGroup("orders")}
-                      >
-                        Rà đơn quá hạn
-                      </button>
-                      <button
-                        className="button button-outline"
-                        disabled={busy}
-                        onClick={() => void runCronGroup("sessions")}
-                      >
-                        Rà buổi học
-                      </button>
-                      <button
-                        className="button button-outline"
-                        disabled={busy}
-                        onClick={() => void runCronGroup("listings")}
-                      >
-                        Cập nhật tìm kiếm
-                      </button>
-                    </div>
-                  )}
+                  {tab === "work" && user && <AdminWorkQueue user={user} busy={busy} onDone={async () => { await refresh(user); setMessage("Đã xử lý mục được chọn."); }} />}
                   {["money", "disputes"].includes(tab) && (
                     <div
                       className="item-actions"
@@ -898,23 +812,47 @@ function SubjectTools({
   run: (a: Row, s?: string) => void;
   busy: boolean;
 }) {
+  const subjects: Row[] = data.subjects || [];
   return (
     <div className="panel">
-      <h2>Bật hoặc tạm dừng môn học</h2>
-      {(data.subjects || []).map((s: Row) => (
-        <div className="item" key={s.id}>
-          <strong>{s.name}</strong>
-          <button
-            className="button button-small button-outline"
-            disabled={busy}
-            onClick={() =>
-              run({ action: "admin", kind: "toggleSubject", id: s.id })
-            }
-          >
-            {s.active ? "Tạm dừng" : "Bật lại"}
-          </button>
-        </div>
-      ))}
+      <h2>Quản lý môn học</h2>
+      <form
+        className="form-actions"
+        onSubmit={(e) => {
+          const v = values(e);
+          run(
+            { action: "admin", kind: "subject", name: v.name },
+            "Đã thêm môn học.",
+          );
+          e.currentTarget.reset();
+        }}
+      >
+        {field("name", "Tên môn mới")}
+        <button className="button" disabled={busy}>
+          Thêm môn
+        </button>
+      </form>
+      {subjects.length ? (
+        subjects.map((s) => (
+          <div className="item" key={s.id}>
+            <div>
+              <strong>{s.name}</strong>
+              <small>{s.active ? "Đang hoạt động" : "Đang tạm dừng"}</small>
+            </div>
+            <button
+              className="button button-small button-outline"
+              disabled={busy}
+              onClick={() =>
+                run({ action: "admin", kind: "toggleSubject", id: s.id })
+              }
+            >
+              {s.active ? "Tạm dừng" : "Bật lại"}
+            </button>
+          </div>
+        ))
+      ) : (
+        <p>Chưa có môn học nào.</p>
+      )}
     </div>
   );
 }
@@ -1930,6 +1868,46 @@ function Chat({
       )}
     </div>
   );
+}
+
+function AdminWorkQueue({ user, busy, onDone }: { user: User; busy: boolean; onDone: () => Promise<void> }) {
+  const groups = ["payments", "orders", "sessions", "listings"] as const;
+  const labels: Record<string, string> = { payments: "Thanh toán", orders: "Đơn quá hạn", sessions: "Buổi học", listings: "Tìm kiếm" };
+  const [group, setGroup] = useState<(typeof groups)[number]>("payments");
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<Row>({ items: [], totalPages: 1, totalItems: 0 });
+  const [error, setError] = useState("");
+  const [working, setWorking] = useState(false);
+  const reload = useCallback(async () => {
+    const response = await fetch(`/api/admin/work?group=${group}&page=${page}`, { headers: { authorization: `Bearer ${await user.getIdToken()}` } });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error?.message || "Không tải được hàng chờ.");
+    setResult(body.data);
+  }, [group, page, user]);
+  useEffect(() => { reload().catch((e) => setError(e.message)); }, [reload]);
+  async function process(id: string) {
+    setWorking(true); setError("");
+    try {
+      const response = await fetch("/api/admin/work", { method: "POST", headers: { authorization: `Bearer ${await user.getIdToken()}`, "content-type": "application/json" }, body: JSON.stringify({ group, id }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error?.message || "Không xử lý được mục này.");
+      await onDone(); await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : "Không xử lý được mục này."); await reload().catch(() => {}); }
+    finally { setWorking(false); }
+  }
+  return <div className="panel">
+    <h2>Cần rà soát ({result.totalItems})</h2>
+    <div className="item-actions" role="group" aria-label="Loại công việc">
+      {groups.map((key) => <button key={key} className={`button button-small ${group === key ? "" : "button-outline"}`} aria-pressed={group === key} disabled={busy || working} onClick={() => { setGroup(key); setPage(1); }}>{labels[key]}</button>)}
+      <button className="button button-small button-outline" disabled={busy || working} onClick={() => { setError(""); reload().catch((e) => setError(e.message)); }}>Làm mới</button>
+    </div>
+    {error && <p role="alert" className="notice error">{error}</p>}
+    {result.items.length ? result.items.map((row: Row) => <div className="item" key={row.id}>
+      <div><strong>{row.title || (group === "sessions" ? `Buổi học ${when(row.start)}` : row.id)}</strong><small>{group === "payments" ? `${vnd(row.price)} · ${when(row.createdAt)}` : group === "orders" ? `${vnd(row.price)} · Hạn ${when(row.decisionDue)}` : group === "sessions" ? `Học viên ${row.studentId} · Gia sư ${row.tutorId}` : `Cập nhật lúc ${when(row.updatedAt)}`}</small></div>
+      <button className="button button-small" disabled={busy || working} onClick={() => void process(row.id)}>{group === "payments" ? "Kiểm tra payOS" : group === "orders" ? "Chuyển hoàn tiền" : group === "sessions" ? "Chuyển tranh chấp" : "Cập nhật"}</button>
+    </div>) : <p>Không có mục cần rà soát.</p>}
+    {result.totalPages > 1 && <div className="item-actions"><button className="button button-small button-outline" disabled={page <= 1 || working} onClick={() => setPage(page - 1)}>Trước</button><small>Trang {page}/{result.totalPages}</small><button className="button button-small button-outline" disabled={page >= result.totalPages || working} onClick={() => setPage(page + 1)}>Sau</button></div>}
+  </div>;
 }
 
 function AdminView({

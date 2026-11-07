@@ -21,6 +21,7 @@ function item(listing: Row, packages: Row[]) {
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
   try {
     await rateLimit(
       "catalog",
@@ -78,6 +79,9 @@ export async function GET(req: NextRequest) {
     const ready = settingsSnap.data()?.publicListingReady === true;
     let matching: Row[] = [],
       featured: Row[] = [];
+    let candidateReads = 0,
+      listingReads = 0,
+      featuredReads = 0;
 
     if (!ready) {
       const [tutors, packages, reviews, blocked] = await Promise.all([
@@ -86,6 +90,7 @@ export async function GET(req: NextRequest) {
         database.collection("reviews").where("status", "==", "visible").get(),
         database.collection("users").where("blocked", "==", true).get(),
       ]);
+      candidateReads = tutors.size + packages.size + reviews.size + blocked.size;
       const blockedIds = new Set(blocked.docs.map((doc) => doc.id));
       const packagesByTutor = new Map<string, Row[]>(),
         reviewsByTutor = new Map<string, Row[]>();
@@ -142,6 +147,7 @@ export async function GET(req: NextRequest) {
         search = search.where("subjectIds", "array-contains", subjectId);
       // shortcut: exact custom-filter totals scan every indexed candidate; denormalize filters if catalog reads become costly.
       const candidates = await search.orderBy(FieldPath.documentId()).get();
+      candidateReads = candidates.size;
       const candidateDocs =
         useOffers && maxPrice !== undefined
           ? candidates.docs.filter(
@@ -155,37 +161,21 @@ export async function GET(req: NextRequest) {
           ),
         ),
       ];
-      const [listingSnaps, tutorSnaps, userSnaps] = await Promise.all([
-        useOffers
-          ? Promise.all(
-              ids.map((id) => database.doc(`publicListings/${id}`).get()),
-            )
-          : Promise.resolve(candidates.docs),
-        Promise.all(ids.map((id) => database.doc(`tutors/${id}`).get())),
-        Promise.all(ids.map((id) => database.doc(`users/${id}`).get())),
-      ]);
+      const listingSnaps = useOffers
+        ? await Promise.all(
+            ids.map((id) => database.doc(`publicListings/${id}`).get()),
+          )
+        : candidates.docs;
+      listingReads = useOffers ? ids.length : 0;
       matching = ids
         .flatMap((id, index) => {
           const listingData = listingSnaps[index].data();
           if (!listingData) return [];
-          const listing = {
-            id,
-            ...listingData,
-            status: tutorSnaps[index].data()?.status,
-            blocked: userSnaps[index].data()?.blocked === true,
-          };
+          const listing = { id, ...listingData };
           const packages = matchingPackages(listing, activeSubjects, filters);
           return packages.length ? [item(listing, packages)] : [];
         })
         .sort((a, b) => a.tutor.id.localeCompare(b.tutor.id));
-      console.info("Catalog search reads", {
-        scanned: candidates.size,
-        returned: matching.length,
-        query: !!query,
-        subjectId: !!subjectId,
-        mode: !!mode,
-        maxPrice: maxPrice !== undefined,
-      });
       if (requestedPage === 1) {
         const top = await database
           .collection("publicListings")
@@ -193,21 +183,9 @@ export async function GET(req: NextRequest) {
           .orderBy("rating", "desc")
           .limit(20)
           .get();
-        const checked: Row[] = await Promise.all(
-          top.docs.map(async (doc) => {
-            const [tutor, user] = await Promise.all([
-              database.doc(`tutors/${doc.id}`).get(),
-              database.doc(`users/${doc.id}`).get(),
-            ]);
-            return {
-              id: doc.id,
-              ...doc.data(),
-              status: tutor.data()?.status,
-              blocked: user.data()?.blocked === true,
-            };
-          }),
-        );
-        featured = checked
+        featuredReads = top.size;
+        featured = top.docs
+          .map((doc): Row => ({ id: doc.id, ...doc.data() }))
           .filter(
             (listing) =>
               listing.reviewCount > 0 &&
@@ -225,6 +203,15 @@ export async function GET(req: NextRequest) {
       (pagination.page - 1) * PAGE_SIZE,
       pagination.page * PAGE_SIZE,
     );
+    console.info("Catalog search", {
+      durationMs: Date.now() - startedAt,
+      candidateReads,
+      listingReads,
+      featuredReads,
+      totalItems: matching.length,
+      returned: items.length,
+      legacy: !ready,
+    });
     return success({
       items,
       subjects,

@@ -42,6 +42,10 @@ test("tìm từ đầy đủ hoặc đầu tên, không tìm chuỗi giữa ph�
     matchingPackages({ ...listing, blocked: true }, active, {}).length,
     0,
   );
+  assert.equal(
+    matchingPackages({ ...listing, status: "suspended" }, active, {}).length,
+    0,
+  );
   assert.equal(searchTokens("Đặng", "Toán").includes("dang"), true);
 });
 

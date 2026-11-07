@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase-admin";
 import { mediaCloud } from "@/lib/cloudinary";
 import { actor } from "@/lib/server";
 import type { TutorMedia } from "@/lib/tutor-profile";
+import { publicPhotoTransforms } from "@/lib/photo";
 
 export const runtime = "nodejs";
 export async function GET(
@@ -16,6 +17,12 @@ export async function GET(
       !["photo", "document", "staged-photo", "staged-document"].includes(kind)
     )
       return new Response("Not found", { status: 404 });
+    const size = req.nextUrl.searchParams.get("size");
+    if (
+      size &&
+      (kind !== "photo" || !Object.hasOwn(publicPhotoTransforms, size))
+    )
+      return new Response("Invalid image size", { status: 400 });
     let publicPhoto = false;
     if (kind === "photo") {
       const [tutorSnap, userSnap] = await Promise.all([
@@ -46,6 +53,9 @@ export async function GET(
       resource_type: file.resourceType,
       type: "authenticated",
       format: file.resourceType === "image" ? file.format : undefined,
+      ...(size
+        ? publicPhotoTransforms[size as keyof typeof publicPhotoTransforms]
+        : {}),
       sign_url: true,
     });
     const response = await fetch(url);

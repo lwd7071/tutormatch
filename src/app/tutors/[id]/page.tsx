@@ -12,6 +12,7 @@ import type {
   PublicReviewDto,
   TutorDetailDto,
 } from "@/lib/public-data";
+import { sizedTutorPhotoUrl } from "@/lib/photo";
 
 const vnd = (n: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
@@ -36,6 +37,7 @@ export default function TutorProfile() {
     [packageTotalPages, setPackageTotalPages] = useState(0),
     [reviewPage, setReviewPage] = useState(1),
     [reviewTotalPages, setReviewTotalPages] = useState(0);
+  const [purchaseEnabled, setPurchaseEnabled] = useState(false);
   const [starts, setStarts] = useState<number[]>([]),
     [selectedStart, setSelectedStart] = useState(0);
   const [loading, setLoading] = useState(true),
@@ -55,6 +57,7 @@ export default function TutorProfile() {
         setPackageTotalPages(detail.packageTotalPages);
         setReviewPage(detail.reviewPage);
         setReviewTotalPages(detail.reviewTotalPages);
+        setPurchaseEnabled(detail.purchaseEnabled);
         fetch(`/api/catalog/${encodeURIComponent(id)}/slots`)
           .then((r) =>
             responseData<{ starts: number[] }>(r, "Không tải được lịch rảnh."),
@@ -139,8 +142,11 @@ export default function TutorProfile() {
             {tutor.photoUrl ? (
               <img
                 className="profile-portrait"
-                src={tutor.photoUrl}
+                src={sizedTutorPhotoUrl(tutor.photoUrl, "profile")}
                 alt={`Ảnh ${tutor.name}`}
+                width={480}
+                height={480}
+                decoding="async"
               />
             ) : (
               tutor.name?.slice(0, 1)
@@ -186,15 +192,17 @@ export default function TutorProfile() {
                       </p>
                       <strong>{vnd(p.price)}</strong>
                     </div>
-                    <button
-                      className="button button-small"
-                      disabled={busy}
-                      onClick={() =>
-                        run({ action: "createOrder", packageId: p.id })
-                      }
-                    >
-                      Mua gói
-                    </button>
+                    {purchaseEnabled && (
+                      <button
+                        className="button button-small"
+                        disabled={busy}
+                        onClick={() =>
+                          run({ action: "createOrder", packageId: p.id })
+                        }
+                      >
+                        Mua gói
+                      </button>
+                    )}
                   </div>
                 ))
               ) : (
