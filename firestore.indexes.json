@@ -50,6 +50,17 @@
       ]
     },
     {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "tutorId", "order": "ASCENDING" },
+        { "fieldPath": "confirmedCount", "order": "ASCENDING" },
+        { "fieldPath": "count", "order": "ASCENDING" },
+        { "fieldPath": "reservedCount", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "sessions",
       "queryScope": "COLLECTION",
       "fields": [
