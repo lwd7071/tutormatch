@@ -117,3 +117,8 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Bổ sung composite index `sessions(tutorId, status, end)` còn thiếu trên Firebase production; đây là truy vấn buổi học cần xác nhận trong phần tổng kết gia sư.
 - Kiểm tra: Trước khi tạo index, truy vấn trả `FAILED_PRECONDITION: The query requires an index`; sau khi index đạt `READY`, chạy lại truy vấn thành công (0 kết quả với UID kiểm tra). `git diff --check` qua.
 - Giới hạn: Chưa gọi lại API bằng phiên đăng nhập của gia sư; chưa chạy kiểm tra UI.
+### 2026-11-08 — Sửa index tổng kết gói gia sư [8571e21]
+
+- Hoàn thành: Thêm composite index `orders(status, tutorId, confirmedCount, count, reservedCount)` vào `firestore.indexes.json` và tạo index trên Firebase production.
+- Kiểm tra: Truy vấn aggregate trước khi sửa trả `FAILED_PRECONDITION`; sau khi index đạt `READY`, chạy lại thành công. JSON hợp lệ và `git diff --check` qua.
+- Giới hạn: Chưa gọi lại API bằng phiên đăng nhập thật; xác nhận bằng truy vấn Firestore tương đương với UID giả.
