@@ -348,6 +348,19 @@ export function TutorProfileEditor({
                 maxLength={2000}
               />
             </label>
+            <label className="field wide">
+              <span>Video giới thiệu công khai trên Google Drive · không bắt buộc</span>
+              <input
+                name="videoUrl"
+                type="url"
+                defaultValue={fields.videoUrl || ""}
+                maxLength={500}
+                placeholder="https://drive.google.com/file/d/.../view"
+              />
+              <small>
+                Bật quyền “Bất kỳ ai có đường liên kết”. Link sẽ hiển thị sau khi admin duyệt hồ sơ.
+              </small>
+            </label>
           </div>
           {!locked && (
             <div className="form-actions">

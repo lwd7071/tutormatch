@@ -16,7 +16,19 @@ export type TutorFields = {
   availability: string;
   provinceCode: string;
   wardCode: string;
+  videoUrl: string;
 };
+
+export function driveVideoId(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "drive.google.com"
+      ? url.pathname.match(/^\/file\/d\/([A-Za-z0-9_-]+)\/view\/?$/)?.[1] || ""
+      : "";
+  } catch {
+    return "";
+  }
+}
 
 const required = (value: unknown, max: number) => {
   if (typeof value !== "string" || !value.trim() || value.length > max)
@@ -35,9 +47,13 @@ export function tutorFields(data: Record<string, unknown>): TutorFields {
   if (!["online", "offline", "both"].includes(String(data.mode)))
     throw invalid("Hình thức dạy không hợp lệ.");
   const provinceCode = optional(data.provinceCode, 2),
-    wardCode = optional(data.wardCode, 5);
+    wardCode = optional(data.wardCode, 5),
+    rawVideoUrl = optional(data.videoUrl, 500),
+    videoId = rawVideoUrl ? driveVideoId(rawVideoUrl) : "";
   if (!validPlace(provinceCode, wardCode))
     throw invalid("Tỉnh và phường/xã chưa hợp lệ.");
+  if (rawVideoUrl && !videoId)
+    throw invalid("Chỉ nhận link video Google Drive dạng /file/d/.../view.");
   return {
     name: required(data.name, 80),
     bio: required(data.bio, 2000),
@@ -46,6 +62,9 @@ export function tutorFields(data: Record<string, unknown>): TutorFields {
     availability: optional(data.availability, 500),
     provinceCode,
     wardCode,
+    videoUrl: videoId
+      ? `https://drive.google.com/file/d/${videoId}/view`
+      : "",
   };
 }
 

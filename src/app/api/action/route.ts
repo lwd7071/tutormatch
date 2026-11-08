@@ -6,6 +6,7 @@ import { handleAdmin } from "@/lib/actions/admin";
 import { handleTutor } from "@/lib/actions/tutor";
 import { handleLessons } from "@/lib/actions/lessons";
 import { handleMember } from "@/lib/actions/member";
+import { handlePackageRequest } from "@/lib/actions/package-request";
 import { parseActionRequest } from "@/lib/action-schema";
 import { conflict } from "@/lib/api-response";
 import { rateLimit } from "@/lib/rate-limit";
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
       await rateLimit("message", user.uid, 30, 60_000);
     if (action === "createOrder")
       await rateLimit("checkout", user.uid, 10, 3_600_000);
+    if (action === "requestPackage") await rateLimit("package-request", user.uid, 5, DAY);
     if (action === "requestTrial") await rateLimit("trial", user.uid, 5, DAY);
 
     if (
@@ -34,6 +36,9 @@ export async function POST(req: NextRequest) {
       return handleTutor(user, data);
 
     if (action === "createOrder") return handleCreateOrder(req, user, data);
+
+    if (["requestPackage", "declinePackageRequest", "offerPackage", "declinePackageOffer"].includes(action))
+      return handlePackageRequest(user, data as Extract<typeof data, { action: "requestPackage" | "declinePackageRequest" | "offerPackage" | "declinePackageOffer" }>);
 
     if (
       action === "decideOrder" ||

@@ -82,11 +82,13 @@ function TutorCard({
   subjects,
   saved,
   onSave,
+  onPreview,
 }: {
   item: CatalogItemDto;
   subjects: PublicSubjectDto[];
   saved: boolean;
   onSave: (id: string) => void;
+  onPreview: (id: string) => void;
 }) {
   const { tutor, packages } = item;
   const names = [
@@ -98,7 +100,20 @@ function TutorCard({
   ];
   const price = Math.min(...packages.map((p) => p.price / p.count));
   return (
-    <article className="tutor-card">
+    <article
+      className="tutor-card"
+      tabIndex={tutor.videoUrl ? 0 : undefined}
+      onMouseEnter={() => onPreview(tutor.videoUrl ? tutor.id : "")}
+      onFocusCapture={() => onPreview(tutor.videoUrl ? tutor.id : "")}
+      onClick={(event) => {
+        if (
+          tutor.videoUrl &&
+          window.matchMedia("(hover: none)").matches &&
+          !(event.target as HTMLElement).closest("a, button")
+        )
+          onPreview(tutor.id);
+      }}
+    >
       <div className="tutor-photo">
         {tutor.photoUrl ? (
           <img
@@ -122,15 +137,6 @@ function TutorCard({
                 ? "Gặp trực tiếp"
                 : "Học trực tuyến"}
           </span>
-          <button
-            className="save-button"
-            type="button"
-            aria-label={saved ? `Bỏ lưu ${tutor.name}` : `Lưu ${tutor.name}`}
-            aria-pressed={saved}
-            onClick={() => onSave(tutor.id)}
-          >
-            {saved ? "♥ Đã lưu" : "♡ Lưu"}
-          </button>
         </div>
         <h3>{tutor.name}</h3>
         <p>{tutor.bio}</p>
@@ -160,20 +166,86 @@ function TutorCard({
             </dd>
           </div>
         </dl>
-        <div className="tutor-bottom">
-          <div>
-            <small>Từ</small>
-            <strong>
-              {Number.isFinite(price) ? vnd(price) : "Chưa cập nhật"}
-              <small> / buổi</small>
-            </strong>
-          </div>
-          <Link className="button button-small" href={`/tutors/${tutor.id}`}>
+      </div>
+      <div className="tutor-bottom">
+        <button
+          className="save-button"
+          type="button"
+          aria-label={saved ? `Bỏ lưu ${tutor.name}` : `Lưu ${tutor.name}`}
+          aria-pressed={saved}
+          onClick={() => onSave(tutor.id)}
+        >
+          {saved ? "♥ Đã lưu" : "♡ Lưu"}
+        </button>
+        <div className="tutor-price">
+          <small>Từ</small>
+          <strong>{Number.isFinite(price) ? vnd(price) : "Chưa cập nhật"}</strong>
+          <small> / buổi</small>
+        </div>
+        <div className="tutor-actions">
+          <Link className="button button-small" href={`/tutors/${tutor.id}#hoc-thu`}>
+            Xem lịch học thử
+          </Link>
+          <Link className="button button-small button-outline" href={`/tutors/${tutor.id}`}>
             Xem hồ sơ
           </Link>
         </div>
       </div>
     </article>
+  );
+}
+
+function TutorVideoPreview({
+  item,
+  onClose,
+}: {
+  item: CatalogItemDto;
+  onClose: () => void;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const id = item.tutor.videoUrl.match(
+    /^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)\/view$/,
+  )?.[1];
+  if (!id) return null;
+  return (
+    <aside className="tutor-video-preview" aria-label={`Xem trước ${item.tutor.name}`}>
+      <div className="tutor-video-frame">
+        {playing ? (
+          <iframe
+            src={`https://drive.google.com/file/d/${id}/preview`}
+            title={`Video giới thiệu của ${item.tutor.name}`}
+            allow="autoplay; fullscreen"
+            allowFullScreen
+          />
+        ) : (
+          <>
+            {item.tutor.photoUrl && (
+              <img src={item.tutor.photoUrl} alt="" loading="lazy" />
+            )}
+            <button
+              className="tutor-video-play"
+              type="button"
+              onClick={() => setPlaying(true)}
+              aria-label={`Phát video giới thiệu của ${item.tutor.name}`}
+            >
+              <span aria-hidden="true" />
+            </button>
+          </>
+        )}
+      </div>
+      <div className="tutor-video-caption">
+        <div>
+          <strong>{item.tutor.name}</strong>
+          <p>Nếu video không mở, gia sư cần bật quyền xem công khai trên Drive.</p>
+        </div>
+        <Link className="button button-small" href={`/tutors/${item.tutor.id}`}>
+          Xem hồ sơ
+        </Link>
+        <button className="text-button" type="button" onClick={onClose}>
+          Đóng xem trước
+        </button>
+      </div>
+    </aside>
   );
 }
 
@@ -190,7 +262,8 @@ export function Discovery() {
     [error, setError] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]),
     [compare, setCompare] = useState<TutorDetailDto[]>([]),
-    [compareError, setCompareError] = useState("");
+    [compareError, setCompareError] = useState(""),
+    [activePreviewId, setActivePreviewId] = useState("");
   const [quizOpen, setQuizOpen] = useState(false),
     [matches, setMatches] = useState<CatalogItemDto[] | null>(null),
     [quizBusy, setQuizBusy] = useState(false);
@@ -745,15 +818,29 @@ export function Discovery() {
           ) : error ? (
             <div className="empty-card error">{error}</div>
           ) : items.length ? (
-            <div className="tutor-grid">
-              {items.map((item) => (
-                <TutorCard
-                  key={item.tutor.id}
-                  item={item}
-                  subjects={subjects}
-                  saved={favorites.includes(item.tutor.id)}
-                  onSave={toggleFavorite}
-                />
+            <div className={`tutor-results${items.some((item) => item.tutor.id === activePreviewId) ? " has-preview" : ""}`}>
+              <div className="tutor-grid">
+                {items.map((item) => (
+                  <div className="tutor-result-item" key={item.tutor.id}>
+                    <TutorCard
+                      item={item}
+                      subjects={subjects}
+                      saved={favorites.includes(item.tutor.id)}
+                      onSave={toggleFavorite}
+                      onPreview={(id) => setActivePreviewId(id)}
+                    />
+                    {activePreviewId === item.tutor.id && item.tutor.videoUrl && (
+                      <div className="tutor-video-preview-mobile">
+                        <TutorVideoPreview item={item} onClose={() => setActivePreviewId("")} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {items.map((item) => item.tutor.id === activePreviewId && (
+                <div className="tutor-video-preview-desktop" key={item.tutor.id}>
+                  <TutorVideoPreview item={item} onClose={() => setActivePreviewId("")} />
+                </div>
               ))}
             </div>
           ) : (

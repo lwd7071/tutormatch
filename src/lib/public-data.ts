@@ -1,4 +1,5 @@
 import { placeName, type WeeklySlot } from "./discovery.ts";
+import { REVIEW_TAG_IDS, type ReviewTagId } from "./review-tags.ts";
 type Row = Record<string, any>;
 export type PublicTutorDto = {
   id: string;
@@ -11,6 +12,7 @@ export type PublicTutorDto = {
   provinceCode: string;
   wardCode: string;
   weeklySlots: WeeklySlot[];
+  videoUrl: string;
 };
 export type PublicPackageDto = {
   id: string;
@@ -28,6 +30,7 @@ export type PublicReviewDto = {
   tutorId: string;
   stars: number;
   text: string;
+  tags: ReviewTagId[];
 };
 export type CatalogItemDto = {
   tutor: PublicTutorDto;
@@ -83,6 +86,7 @@ export function publicTutor(tutor: Row): PublicTutorDto {
     provinceCode: provinceCode || "",
     wardCode: wardCode || "",
     weeklySlots: tutor.weeklySlots || [],
+    videoUrl: tutor.videoUrl || "",
   };
 }
 
@@ -98,7 +102,11 @@ export function publicSubject(subject: Row): PublicSubjectDto {
 
 export function publicReview(review: Row): PublicReviewDto {
   const { id, tutorId, stars, text } = review;
-  return { id, tutorId, stars, text };
+  const allowed = new Set<string>(REVIEW_TAG_IDS);
+  const tags = Array.isArray(review.tags)
+    ? review.tags.filter((tag: unknown): tag is ReviewTagId => typeof tag === "string" && allowed.has(tag))
+    : [];
+  return { id, tutorId, stars, text, tags };
 }
 
 export function publicCatalog(
@@ -120,6 +128,7 @@ export function publicCatalog(
       .filter(
         (p) =>
           p.active === true &&
+        p.visibility !== "private" &&
           approvedIds.has(p.tutorId) &&
           activeSubjectIds.has(p.subjectId),
       )

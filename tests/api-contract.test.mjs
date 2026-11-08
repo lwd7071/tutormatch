@@ -62,6 +62,34 @@ test("admin chỉ lưu link HTTPS thuộc Google Forms", () => {
   assert.equal(action("http://docs.google.com/forms/abc").success, false);
 });
 
+test("reviewTutor chỉ nhận tối đa ba hashtag hợp lệ, không trùng", () => {
+  const review = (tags) => actionSchema.safeParse({
+    action: "reviewTutor",
+    orderId: "order_1",
+    stars: 5,
+    text: "Giảng dễ hiểu",
+    ...(tags === undefined ? {} : { tags }),
+  });
+  assert.equal(review().success, true);
+  assert.equal(review(["clear_explanation"]).success, true);
+  assert.equal(review(["clear_explanation", "patient_tutor", "caring_tutor"]).success, true);
+  assert.equal(review(["unknown"]).success, false);
+  assert.equal(review(["patient_tutor", "patient_tutor"]).success, false);
+  assert.equal(review(["clear_explanation", "patient_tutor", "caring_tutor", "fun_learning"]).success, false);
+});
+
+test("yêu cầu gói học cần đủ mục tiêu, nội dung và thời gian mong muốn", () => {
+  const request = {
+    action: "requestPackage", tutorId: "tutor", subjectId: "math",
+    purpose: "Ôn thi cuối kỳ", topics: "Phương trình", count: 4,
+    durationMinutes: 60, mode: "online", timePreference: "Tối thứ 2 và 4",
+  };
+  assert.equal(actionSchema.safeParse(request).success, true);
+  assert.equal(actionSchema.safeParse({ ...request, count: 0 }).success, false);
+  assert.equal(actionSchema.safeParse({ ...request, timePreference: " " }).success, false);
+  assert.equal(actionSchema.safeParse({ ...request, purpose: "" }).success, false);
+});
+
 test("request quá lớn và JSON sai trả lỗi nhập liệu", async () => {
   await assert.rejects(
     parseActionRequest(

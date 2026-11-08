@@ -24,11 +24,16 @@ export async function applyPaidOrder(
       tx.get(database.doc(`tutors/${order.tutorId}`)),
       tx.get(database.doc(`users/${order.tutorId}`)),
     ]);
+    const paidAt = now();
+    if (order.packageRequestId) {
+      const request = (await tx.get(database.doc(`packageRequests/${order.packageRequestId}`))).data();
+      if (request && request.currentOfferId === order.packageId && request.status === "offered")
+        tx.update(database.doc(`packageRequests/${order.packageRequestId}`), { status: "purchased", updatedAt: paidAt });
+    }
     const unavailable = !tutorAcceptsNewOrders(
       tutorSnap.data()?.status,
       tutorUserSnap.data()?.blocked === true,
     );
-    const paidAt = now();
     tx.update(ref, {
       status: unavailable
         ? "refund_pending"

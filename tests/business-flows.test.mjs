@@ -38,11 +38,13 @@ test("danh sách công khai lọc gia sư bị khóa, môn tạm dừng và trư
       name: "A",
       bio: "Toán",
       mode: "online",
+      videoUrl: "https://drive.google.com/file/d/video123/view",
       email: "private@example.com",
       documentUrl: "/private",
       reviewReason: "private",
     },
     { id: "b", status: "approved", name: "B", bio: "Lý", mode: "offline" },
+    { id: "c", status: "pending", name: "C", bio: "Hóa", mode: "online", videoUrl: "https://drive.google.com/file/d/pending/view" },
   ];
   const packages = [
     { id: "p1", tutorId: "a", subjectId: "math", active: true, price: 1000 },
@@ -55,13 +57,29 @@ test("danh sách công khai lọc gia sư bị khóa, môn tạm dừng và trư
   ];
   const reviews = [
     {
+      id: "r0",
+      tutorId: "a",
+      status: "visible",
+      stars: 4,
+      text: "Đánh giá cũ không có tag",
+    },
+    {
       id: "r1",
       tutorId: "a",
       status: "visible",
       stars: 5,
       text: "Tốt",
+      tags: ["clear_explanation", "unknown"],
       studentId: "student-secret",
       orderId: "order-secret",
+    },
+    {
+      id: "r2",
+      tutorId: "a",
+      status: "hidden",
+      stars: 1,
+      text: "Ẩn",
+      tags: ["patient_tutor"],
     },
   ];
   const result = publicCatalog(
@@ -75,6 +93,7 @@ test("danh sách công khai lọc gia sư bị khóa, môn tạm dừng và trư
     result.tutors.map((t) => t.id),
     ["a"],
   );
+  assert.equal(result.tutors[0].videoUrl, "https://drive.google.com/file/d/video123/view");
   assert.deepEqual(
     result.packages.map((p) => p.id),
     ["p1"],
@@ -83,12 +102,16 @@ test("danh sách công khai lọc gia sư bị khóa, môn tạm dừng và trư
     result.subjects.map((s) => s.id),
     ["math"],
   );
-  assert.deepEqual(Object.keys(result.reviews[0]).sort(), [
+  assert.deepEqual(Object.keys(result.reviews[1]).sort(), [
     "id",
     "stars",
+    "tags",
     "text",
     "tutorId",
   ]);
+  assert.deepEqual(result.reviews.map((review) => review.id), ["r0", "r1"]);
+  assert.deepEqual(result.reviews[0].tags, []);
+  assert.deepEqual(result.reviews[1].tags, ["clear_explanation"]);
   assert.equal(JSON.stringify(result).includes("private"), false);
   assert.equal(JSON.stringify(result).includes("student-secret"), false);
 });

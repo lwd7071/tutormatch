@@ -56,7 +56,7 @@ export async function GET(
     );
     const subjectIds = new Set(subjects.map((subject) => subject.id));
     const eligiblePackages = packagesSnap.docs
-      .filter((doc) => subjectIds.has(doc.data().subjectId))
+      .filter((doc) => doc.data().visibility !== "private" && subjectIds.has(doc.data().subjectId))
       .sort((a, b) => a.id.localeCompare(b.id));
     const packageInfo = pageInfo(eligiblePackages.length, packagePageNumber);
     const packages = eligiblePackages

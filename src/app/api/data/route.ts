@@ -183,6 +183,9 @@ export async function GET(req: NextRequest) {
             )
             .limit(20)
             .get(),
+      user.role === "admin"
+        ? database.collection("packageRequests").limit(20).get()
+        : database.collection("packageRequests").where(user.role === "tutor" ? "tutorId" : "studentId", "==", user.uid).limit(20).get(),
       database.doc(`media/${user.uid}`).get(),
       database.doc(`tutorSubmissions/${user.uid}`).get(),
     ]);
@@ -196,6 +199,7 @@ export async function GET(req: NextRequest) {
         refunds,
         notices,
         trials,
+        packageRequests,
         myMedia,
         mySubmission,
       ],
@@ -246,6 +250,10 @@ export async function GET(req: NextRequest) {
         document: legacyMedia[i].data()?.document,
       });
     const mediaState = myMedia.data();
+    const packageRequestRows = await Promise.all(rows(packageRequests).map(async (request) => {
+      const offer = request.currentOfferId ? await database.doc(`packages/${request.currentOfferId}`).get() : null;
+      return { ...request, offer: offer?.exists ? dataDto("package", { id: offer.id, ...offer.data() }, user.role) : null };
+    }));
     const summary =
       user.role === "admin"
         ? await (async () => {
@@ -359,6 +367,7 @@ export async function GET(req: NextRequest) {
       refunds: dataDtos("refund", rows(refunds), user.role),
       notices: dataDtos("notice", rows(notices), user.role),
       trials: dataDtos("trial", rows(trials), user.role),
+      packageRequests: packageRequestRows,
       packages: dataDtos("package", rows(myPackages), user.role),
       wallet: {
         available: wallet?.data()?.available || 0,

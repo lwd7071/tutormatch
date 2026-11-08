@@ -87,3 +87,11 @@ test("chỉ mục gói lấy giá mỗi buổi thấp nhất cho từng môn và
   assert.equal(offers.get("teacher__math__online")?.minPrice, 100000);
   assert.equal(offers.get("teacher__math__offline")?.minPrice, 150000);
 });
+
+test("gói riêng cho học viên không xuất hiện trong hồ sơ công khai", () => {
+  const listing = buildListing("teacher", { status: "approved", name: "Minh" }, false, [
+    { id: "public", subjectId: "math", active: true, price: 100000, count: 1, mode: "online" },
+    { id: "private", subjectId: "math", active: true, visibility: "private", studentId: "student", price: 90000, count: 1, mode: "online" },
+  ], []);
+  assert.deepEqual(listing.packages.map((pack) => pack.id), ["public"]);
+});

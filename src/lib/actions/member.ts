@@ -150,6 +150,7 @@ export async function handleMember(user: Actor, data: MemberAction) {
       studentId: user.uid,
       stars: integer(data.stars, 1, 5),
       text: str(data.text, 1000),
+      tags: data.tags || [],
       at: now(),
       status: "visible",
     };

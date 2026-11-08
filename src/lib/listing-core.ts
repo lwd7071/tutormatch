@@ -30,7 +30,7 @@ export function buildListing(
   reviews: Row[],
 ) {
   const activePackages = packages
-    .filter((pack) => pack.active === true)
+    .filter((pack) => pack.active === true && pack.visibility !== "private")
     .map(publicPackage);
   const visibleReviews = reviews.filter(
     (review) => review.status === "visible",

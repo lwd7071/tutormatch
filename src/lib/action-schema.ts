@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { invalid } from "./api-response.ts";
+import { REVIEW_TAG_IDS } from "./review-tags.ts";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -15,6 +16,7 @@ const tutor = z.strictObject({
   availability: optionalText(500),
   provinceCode: optionalText(2),
   wardCode: optionalText(5),
+  videoUrl: optionalText(500),
 });
 const admin = z.discriminatedUnion("kind", [
   z.strictObject({
@@ -123,6 +125,30 @@ const actions = z.discriminatedUnion("action", [
     renewalOf: id.optional(),
     idempotencyKey: z.uuid(),
   }),
+  z.strictObject({
+    action: z.literal("requestPackage"),
+    tutorId: id,
+    subjectId: id,
+    purpose: text(300),
+    topics: text(1000),
+    count: amount(1, 100),
+    durationMinutes: amount(15, 240),
+    mode: z.enum(["online", "offline"]),
+    timePreference: text(500),
+    note: optionalText(1000),
+  }),
+  z.strictObject({ action: z.literal("declinePackageOffer"), id }),
+  z.strictObject({ action: z.literal("declinePackageRequest"), id }),
+  z.strictObject({
+    action: z.literal("offerPackage"),
+    id,
+    title: text(100),
+    subjectId: id,
+    price: amount(1000, 100_000_000),
+    count: amount(1, 100),
+    durationMinutes: amount(15, 240),
+    mode: z.enum(["online", "offline"]),
+  }),
   z.strictObject({ action: z.literal("decideOrder"), id, accept: z.boolean() }),
   z.strictObject({ action: z.literal("createSession"), orderId: id, start }),
   z.strictObject({
@@ -193,6 +219,11 @@ const actions = z.discriminatedUnion("action", [
     orderId: id,
     stars: amount(1, 5),
     text: text(1000),
+    tags: z
+      .array(z.enum(REVIEW_TAG_IDS))
+      .max(3)
+      .refine((tags) => new Set(tags).size === tags.length, "Hashtag không được trùng.")
+      .optional(),
   }),
 ]);
 

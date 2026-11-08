@@ -32,6 +32,7 @@ try {
                   location: "",
                   availability: "Tối thứ hai",
                   weeklySlots: [{ day: 1, start: 1080, end: 1200 }],
+                  videoUrl: "https://drive.google.com/file/d/abc123/view",
                 },
                 packages: [
                   {
@@ -72,6 +73,15 @@ try {
     await page.getByRole("heading", { name: "Chưa thấy gia sư phù hợp?" }).waitFor();
     await page.getByRole("heading", { name: "Gia sư mẫu" }).waitFor();
     await page.getByText("★ 4.5 · 2 lượt").waitFor();
+    if (await page.locator(".tutor-video-frame iframe").count())
+      throw new Error("Video Drive được tải trước khi người dùng bấm Play.");
+    if (viewport.width < 700) await page.locator(".tutor-card").click();
+    else await page.locator(".tutor-card").hover();
+    await page.getByRole("button", { name: "Phát video giới thiệu của Gia sư mẫu" }).waitFor();
+    await page.getByRole("button", { name: "Phát video giới thiệu của Gia sư mẫu" }).click();
+    await page.locator('iframe[src="https://drive.google.com/file/d/abc123/preview"]').waitFor();
+    await page.getByRole("button", { name: "Đóng xem trước" }).click();
+    await page.locator(".tutor-video-preview").waitFor({ state: "detached" });
     await page.getByRole("button", { name: "Lưu Gia sư mẫu" }).click();
     await page.getByRole("button", { name: "Bỏ lưu Gia sư mẫu" }).waitFor();
     await page.getByText("Lọc thêm theo lịch và khu vực").click();

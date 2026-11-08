@@ -21,7 +21,7 @@ For rollout, deploy Firestore indexes first (see below), then deploy this code w
 
 Set `APP_PAYMENT_PROVIDER=payos`, `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, and `PAYOS_CHECKSUM_KEY` when ready. Configure the payOS payment webhook URL to `https://YOUR_DOMAIN/api/payments/webhook`. Redirects never activate an order; payment is confirmed by the verified webhook or an admin check against payOS. Refunds and tutor withdrawals are manual bank transfers recorded by an admin. Verify the money-holding and payout arrangement before taking live payments.
 
-Admin reviews pending payOS payments, overdue tutor responses, overdue lesson confirmations, and queued search updates from **Cần rà soát** in the dashboard. Each item is processed individually; payment status is checked with payOS, and only a verified webhook or payOS response can mark an order paid. Overdue orders and sessions remain subject to their 24-hour deadlines and wait for an admin to process them. Refund transfers remain manual.
+There is no scheduled worker for these tasks. An admin processes pending payOS payments, overdue tutor responses, overdue lesson confirmations, and queued search updates individually from **Cần rà soát** in the dashboard. Payment status is checked with payOS; only a verified webhook or payOS response can mark an order paid. Overdue orders and sessions wait for an admin to process them after their 24-hour deadlines. Refund transfers remain manual.
 
 ### Staging QR payment check
 
@@ -42,9 +42,9 @@ Before switching catalog reads in production:
 3. Run `npx tsx scripts/migrate-public-listings.ts` to list IDs and counts. This is read only. Compare the expected count with approved, unblocked tutors.
 4. Run `npx tsx scripts/migrate-public-listings.ts --apply` using the service account for the intended project. The script can be rerun and enables the indexed catalog only after verifying every listing and offer row. Run the dry run again; `changedCount`, `staleCount`, and `staleOffers` should be empty. Until then the catalog retains its legacy read path. Once `publicOfferReady` is enabled, `/api/data?scope=public` returns 410; use `/api/catalog`.
 5. Run `npm test`, `npm run typecheck`, `npm run build`, and `npm run test:ui` against staging. The UI smoke test covers mobile and desktop public pages and the signed out app; test signed in student, tutor, and admin flows manually in staging.
-6. After deployment monitor API errors by `requestId`, webhook and cron failures, `settings/paymentReconciliation`, pending payment orders, and catalog query read warnings. Leave payments disabled if any new index is building or the migration verification fails.
+6. After deployment monitor API errors by `requestId`, payment webhook failures, the **Cần rà soát** queue for pending payments and overdue work, and catalog query read warnings. Leave payments disabled if any new index is building or the migration verification fails.
 
-The `/api/action` route accepts strict, action specific JSON and returns `{ data }` or `{ error: { code, message, fieldErrors? }, requestId }`. Public search returns 24 tutors per page; private lists return 50 records per page. Payment creation uses a client idempotency key. The daily cron checks payOS links that are at least five minutes old; a payOS timeout leaves the order pending for reconciliation instead of declaring it unpaid.
+The `/api/action` route accepts strict, action specific JSON and returns `{ data }` or `{ error: { code, message, fieldErrors? }, requestId }`. Public search returns 24 tutors per page; private lists return 50 records per page. Payment creation uses a client idempotency key. Pending payment orders at least five minutes old appear in **Cần rà soát** for an admin to check with payOS. A payOS timeout leaves the order pending until it can be checked; the app does not declare it unpaid automatically.
 
 ## Tutor discovery and trial scheduling
 

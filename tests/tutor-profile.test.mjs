@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   approvedTutorUpdate,
+  driveVideoId,
   prepareTutorSubmission,
   tutorAcceptsNewOrders,
   tutorFields,
@@ -120,6 +121,22 @@ test("từ chối tệp giả mạo kiểu ảnh hoặc PDF", () => {
   );
 });
 
+test("hồ sơ chỉ nhận link chia sẻ Google Drive dạng video và chuẩn hóa link", () => {
+  const videoUrl = "https://drive.google.com/file/d/abc_123/view?usp=sharing";
+  const fields = tutorFields({ ...input, videoUrl });
+  assert.equal(fields.videoUrl, "https://drive.google.com/file/d/abc_123/view");
+  assert.equal(driveVideoId(fields.videoUrl), "abc_123");
+  assert.equal(tutorFields(input).videoUrl, "");
+  assert.throws(
+    () => tutorFields({ ...input, videoUrl: "https://example.com/file/d/abc/view" }),
+    /Google Drive/,
+  );
+  assert.throws(
+    () => tutorFields({ ...input, videoUrl: "https://drive.google.com/open?id=abc" }),
+    /Google Drive/,
+  );
+});
+
 test("duyệt bản sửa không tự khôi phục gia sư đang tạm ẩn", () => {
   const candidate = {
     ...tutorFields(input),
@@ -135,6 +152,7 @@ test("duyệt bản sửa không tự khôi phục gia sư đang tạm ẩn", ()
   );
   assert.equal(update.status, "suspended");
   assert.equal(update.photoUrl, "/api/media/uid/photo?v=123");
+  assert.equal(update.videoUrl, "");
   assert.equal(
     approvedTutorUpdate(candidate, { status: "approved" }, "uid", 123).status,
     "approved",

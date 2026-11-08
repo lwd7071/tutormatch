@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { User } from "firebase/auth";
@@ -12,6 +12,7 @@ import { MobileNav, type NavItem } from "@/components/MobileNav";
 import { api, chatPage, pageList, privateData, useUser } from "@/lib/use-user";
 import { AvailabilityEditor } from "@/components/AvailabilityEditor";
 import { Pagination } from "@/components/Pagination";
+import { REVIEW_TAG_IDS, REVIEW_TAG_LABELS, type ReviewTagId } from "@/lib/review-tags";
 
 type Row = Record<string, any>;
 const vnd = (n: number) =>
@@ -122,8 +123,8 @@ function WorkspaceContent() {
   useEffect(() => {
     if (user) refresh(user).catch((e) => setError(e.message));
   }, [user, refresh]);
-  async function run(action: Row, success = "Đã cập nhật thành công.") {
-    if (!user) return;
+  async function run(action: Row, success = "Đã cập nhật thành công."): Promise<boolean> {
+    if (!user) return false;
     setBusy(true);
     setMessage("");
     setError("");
@@ -131,13 +132,15 @@ function WorkspaceContent() {
       const result = await api(user, action);
       if (result.checkoutUrl) {
         location.href = result.checkoutUrl;
-        return;
+        return true;
       }
       await refresh(user);
       if (action.action === "becomeTutor") router.push("/app?tab=profile");
       setMessage(success);
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Có lỗi xảy ra.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -956,9 +959,10 @@ function StudentView({
 }: {
   tab: string;
   data: Row;
-  run: (a: Row, s?: string) => void;
+  run: (a: Row, s?: string) => Promise<boolean>;
   busy: boolean;
 }) {
+  const [reviewingOrder, setReviewingOrder] = useState<string | null>(null);
   const orders: Row[] = data.orders || [],
     sessions: Row[] = data.sessions || [];
   const upcoming = sessions
@@ -1102,27 +1106,21 @@ function StudentView({
                       <button
                         className="button button-small"
                         disabled={busy}
-                        onClick={() => {
-                          const stars = Number(
-                            prompt("Bạn chấm gia sư mấy sao (1–5)?"),
-                          );
-                          const text = prompt("Chia sẻ trải nghiệm của bạn:");
-                          if (stars && text)
-                            run(
-                              {
-                                action: "reviewTutor",
-                                orderId: o.id,
-                                stars,
-                                text,
-                              },
-                              "Cảm ơn bạn đã đánh giá!",
-                            );
-                        }}
+                        aria-expanded={reviewingOrder === o.id}
+                        onClick={() => setReviewingOrder(reviewingOrder === o.id ? null : o.id)}
                       >
-                        Đánh giá
+                        {reviewingOrder === o.id ? "Đóng đánh giá" : "Đánh giá"}
                       </button>
                     )}
                   </div>
+                  {reviewingOrder === o.id && (
+                    <ReviewForm
+                      orderId={o.id}
+                      run={run}
+                      busy={busy}
+                      onCancel={() => setReviewingOrder(null)}
+                    />
+                  )}
                 </div>
               ))
           ) : (
@@ -1131,6 +1129,24 @@ function StudentView({
               <Link href="/#tim-gia-su">Tìm gia sư →</Link>
             </p>
           )}
+        </div>
+        <div className="panel">
+          <h2>Yêu cầu gói học</h2>
+          {(data.packageRequests || []).length ? data.packageRequests.map((request: Row) => (
+            <div className="item" key={request.id}>
+              <div className="item-info">
+                <strong>{request.purpose}</strong>
+                <small>{request.topics}</small>
+                <small>{request.count} buổi mong muốn · {request.durationMinutes} phút · {request.timePreference}</small>
+                <Badge value={request.status} />
+                {request.offer && <small>Đề nghị: {request.offer.title} · {request.offer.count} buổi × {request.offer.durationMinutes} phút · {vnd(request.offer.price)} ({vnd(request.offer.price / request.offer.count)}/buổi)</small>}
+              </div>
+              {request.status === "offered" && request.offer && <div className="item-actions">
+                <button className="button button-small" disabled={busy} onClick={() => run({ action: "createOrder", packageId: request.offer.id }, "Đang chuyển tới thanh toán.")}>Đồng ý & thanh toán</button>
+                <button className="button button-small button-outline" disabled={busy} onClick={() => run({ action: "declinePackageOffer", id: request.id })}>Từ chối</button>
+              </div>}
+            </div>
+          )) : <p>Bạn chưa gửi yêu cầu gói học nào.</p>}
         </div>
         <div className="panel">
           <h2>Hoàn tiền</h2>
@@ -1219,6 +1235,72 @@ function StudentView({
         <p>Chưa có thông báo mới.</p>
       )}
     </div>
+  );
+}
+
+function ReviewForm({
+  orderId,
+  run,
+  busy,
+  onCancel,
+}: {
+  orderId: string;
+  run: (a: Row, s?: string) => Promise<boolean>;
+  busy: boolean;
+  onCancel: () => void;
+}) {
+  const [stars, setStars] = useState("");
+  const [text, setText] = useState("");
+  const [tags, setTags] = useState<ReviewTagId[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    const saved = await run(
+      { action: "reviewTutor", orderId, stars: Number(stars), text, tags },
+      "Cảm ơn bạn đã đánh giá!",
+    );
+    setSubmitting(false);
+    if (saved) onCancel();
+  }
+  return (
+    <form className="review-form" onSubmit={submit}>
+      <label>
+        Số sao
+        <select required value={stars} onChange={(event) => setStars(event.target.value)}>
+          <option value="">Chọn số sao</option>
+          {[5, 4, 3, 2, 1].map((value) => (
+            <option key={value} value={value}>{value} sao</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Nhận xét
+        <textarea required maxLength={1000} value={text} onChange={(event) => setText(event.target.value)} />
+      </label>
+      <fieldset>
+        <legend>Gắn hashtag (không bắt buộc, tối đa 3)</legend>
+        <div className="review-tag-options">
+          {REVIEW_TAG_IDS.map((tag) => (
+            <label className="review-tag-option" key={tag}>
+              <input
+                type="checkbox"
+                checked={tags.includes(tag)}
+                disabled={!tags.includes(tag) && tags.length >= 3}
+                onChange={(event) => setTags((selected) =>
+                  event.target.checked ? [...selected, tag] : selected.filter((item) => item !== tag),
+                )}
+              />
+              #{REVIEW_TAG_LABELS[tag]}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="item-actions">
+        <button className="button button-small" disabled={busy || submitting || !stars || !text.trim()} type="submit">Gửi đánh giá</button>
+        <button className="button button-small button-outline" disabled={submitting} onClick={onCancel} type="button">Hủy</button>
+      </div>
+    </form>
   );
 }
 
@@ -1352,6 +1434,24 @@ function TutorView({
           ) : (
             <p>Chưa có học viên mua gói.</p>
           )}
+        </div>
+        <div className="panel">
+          <h2>Yêu cầu gói học mới</h2>
+          {(data.packageRequests || []).filter((request: Row) => ["requested", "offered"].includes(request.status)).length ?
+            (data.packageRequests || []).filter((request: Row) => ["requested", "offered"].includes(request.status)).map((request: Row) => (
+              <div className="item" key={request.id}>
+                <div className="item-info"><strong>{request.purpose}</strong><small>{request.topics}</small><small>{request.count} buổi · {request.durationMinutes} phút · {request.mode === "online" ? "Trực tuyến" : "Trực tiếp"}</small><small>Khung giờ: {request.timePreference}</small>{request.note && <small>Ghi chú: {request.note}</small>}</div>
+                <form className="review-form" onSubmit={(event) => {
+                  event.preventDefault();
+                  const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+                  void run({ action: "offerPackage", id: request.id, title: values.title, subjectId: request.subjectId, price: Number(values.price), count: Number(values.count), durationMinutes: Number(values.durationMinutes), mode: request.mode });
+                }}>
+                  <label className="field"><span>Tên gói đề nghị</span><input name="title" required defaultValue={`Gói học ${request.count} buổi`} /></label>
+                  <div className="form-grid"><label className="field"><span>Số buổi</span><input name="count" type="number" min="1" max="100" required defaultValue={request.count} /></label><label className="field"><span>Phút mỗi buổi</span><input name="durationMinutes" type="number" min="15" max="240" required defaultValue={request.durationMinutes} /></label><label className="field"><span>Tổng giá (VND)</span><input name="price" type="number" min="1000" max="100000000" required /></label></div>
+                  <div className="item-actions"><button className="button button-small" disabled={busy}>Gửi đề nghị</button><button type="button" className="button button-small button-outline" disabled={busy} onClick={() => run({ action: "declinePackageRequest", id: request.id })}>Từ chối</button></div>
+                </form>
+              </div>
+            )) : <p>Không có yêu cầu mới.</p>}
         </div>
         <div className="panel">
           <h2>Yêu cầu học thử</h2>

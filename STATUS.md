@@ -60,3 +60,60 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Thêm hiệu ứng xuất hiện khi cuộn cho nội dung và thẻ gia sư, phản hồi nút lưu, chuyển trạng thái và mở bộ lọc; thống nhất hover/nhấn. Ngôi sao dừng khi ra ngoài màn hình hoặc tab bị ẩn; hỗ trợ giảm chuyển động và nội dung hiển thị mặc định khi JavaScript không hoạt động.
 - Kiểm tra: Typecheck, production build và UI smoke mobile/desktop đã qua; bổ sung kiểm tra ngôi sao dừng ngoài màn hình và chế độ giảm chuyển động. Build cần chạy ngoài sandbox vì Turbopack bị chặn tạo junction trên Windows.
 - Giới hạn: Chưa đo độ mượt trên điện thoại cấu hình thấp thật hoặc kiểm tra các vai trò đăng nhập bằng tài khoản thật; chuyển tiếp bộ lọc phụ thuộc hỗ trợ trình duyệt và có phương án mở/đóng tức thì.
+
+### 2026-11-07 — Đánh giá trạng thái project
+
+- Hoàn thành: Rà soát cấu trúc, tài liệu, các luồng thanh toán, quyền truy cập, hàng chờ quản trị, khám phá và gợi ý gia sư; ghi nhận các rủi ro vận hành và mở rộng đã xác nhận từ mã.
+- Kiểm tra: `npm run typecheck`, `npm test` (37/37) và `npm run build` đều qua; đối chiếu trực tiếp các API, xử lý giao dịch và README.
+- Giới hạn: Chưa chạy UI smoke, chưa kiểm thử vai trò đăng nhập hoặc thanh toán thật trên staging; chưa đo tải và chi phí Firestore bằng dữ liệu thực.
+
+### 2026-11-08 — Đồng bộ hướng dẫn hàng chờ admin
+
+- Hoàn thành: Cập nhật README để mô tả các mục thanh toán chờ, đơn và buổi học quá hạn, cùng việc cập nhật danh sách được admin xử lý thủ công từ **Cần rà soát**; bỏ hướng dẫn cron không có trong code hiện tại.
+- Kiểm tra: Tìm `cron` và `daily` trong README; không còn kết quả. Đối chiếu mô tả hàng chờ với `/api/admin/work`.
+- Giới hạn: Chỉ sửa tài liệu; không chạy test ứng dụng.
+
+### 2026-11-08 — Thêm video giới thiệu gia sư
+
+- Hoàn thành: Cho phép gia sư thêm link chia sẻ video Google Drive vào hồ sơ; link được kiểm tra, chờ duyệt cùng hồ sơ, rồi mới xuất hiện trong catalog. Thẻ gia sư mở preview khi hover/focus hoặc chạm, có nút đóng; iframe chỉ tải sau khi bấm Play.
+- Kiểm tra: `npm test` (38/38), `npm run typecheck`, `git diff --check`; smoke test UI đã thử nhưng timeout khi đợi trang chủ trên server dev sẵn có ở cổng 3000.
+- Giới hạn: Chưa xác minh trực quan preview trên trình duyệt vì server dev không phục vụ được trang; quyền chia sẻ công khai của Drive do gia sư tự cấu hình.
+
+### 2026-11-08 — Thiết kế lại thẻ gia sư ngang
+
+- Hoàn thành: Đổi danh sách gia sư sang thẻ ngang với ảnh, thông tin, giá và hành động tách rõ; thêm nút dẫn tới phần chọn giờ học thử. Panel video mở bên phải trên desktop và bên dưới thẻ trên mobile; gia sư không có video không mở panel.
+- Kiểm tra: `npm run typecheck` và `git diff --check` qua. Kiểm tra Playwright riêng ở 1440 px và 390 px với tên/giới thiệu dài, có và không có video: không tràn ngang, iframe chưa có trước khi bấm Play; bấm Play, đóng panel và link `#hoc-thu` hoạt động. Đã xem ảnh chụp hai kích thước. `npm run test:ui` vẫn dừng ở bước chờ hiệu ứng ngôi sao của trang chủ.
+- Giới hạn: Chưa xác minh bằng video Drive thật; smoke test toàn trang chưa qua do bước kiểm tra hiệu ứng ngôi sao không đạt trên server kiểm tra.
+
+### 2026-11-08 — Thêm hashtag cho đánh giá gia sư
+
+- Hoàn thành: Thay prompt đánh giá bằng form sao, nhận xét và tối đa ba hashtag có sẵn; kiểm tra mã tag ở schema, lưu cùng đánh giá và hiển thị hashtag chỉ trong review công khai. Review cũ vẫn có danh sách tag rỗng; review bị ẩn không được đưa vào dữ liệu công khai.
+- Kiểm tra: `npm run typecheck`, `npm test` (39/39) và `git diff --check` đều qua; test xác nhận tag hợp lệ, thiếu tag, mã lạ, trùng, quá ba tag, review cũ và review ẩn.
+- Giới hạn: Chưa chạy kiểm tra tương tác trực quan trên trình duyệt hoặc thiết bị di động.
+### 2026-11-08 — Chẩn đoán lỗi 500 hàng thanh toán trong bảng điều hành
+
+- Hoàn thành: Xác định Firestore production thiếu composite index cho truy vấn `orders` theo `status` và `createdAt`; cấu hình index cần thiết đã có trong `firestore.indexes.json`.
+- Kiểm tra: Chạy truy vấn Firestore production chỉ đọc, tái hiện `FAILED_PRECONDITION: The query requires an index`; liệt kê index production, chỉ thấy index `status` + `decisionDue` ở trạng thái `READY`.
+- Giới hạn: Chưa triển khai index lên Firebase production; truy vấn thanh toán sẽ tiếp tục lỗi 500 cho tới khi index trong `firestore.indexes.json` được triển khai và đạt `READY`.
+
+### 2026-11-08 — Thêm yêu cầu gói học riêng
+
+- Hoàn thành: Thêm form gửi yêu cầu học trực tiếp từ hồ sơ gia sư; gia sư có thể từ chối hoặc tạo đề nghị gói riêng, học viên xem tổng giá và giá mỗi buổi rồi chuyển sang checkout. Gói riêng được giới hạn theo học viên, loại khỏi catalog và kiểm tra lại trước khi tạo đơn; thông báo được gửi khi có yêu cầu, đề nghị và quyết định.
+- Kiểm tra: `npm run typecheck`, `npm test` (41/41) và `git diff --check` đều qua; bổ sung kiểm tra schema trường yêu cầu và xác nhận gói riêng không vào listing công khai.
+- Giới hạn: Chưa chạy UI smoke/kiểm tra trên thiết bị di động hoặc giao dịch thanh toán staging; chưa có kiểm thử tích hợp Firestore cho quyền truy cập, thay thế đề nghị và checkout.
+### 2026-11-08 — Triển khai index cho hàng thanh toán admin
+
+- Hoàn thành: Tạo composite index `orders` theo `status` và `createdAt` trên Firebase production; index đạt trạng thái `READY`.
+- Kiểm tra: Chạy lại truy vấn đếm và lấy trang cùng điều kiện với API; cả hai chạy thành công, kết quả hiện có 0 đơn chờ thanh toán quá 5 phút. `git diff --check` qua.
+- Giới hạn: Chưa kiểm tra request từ trình duyệt đã đăng nhập; truy vấn Firestore tương ứng của API đã chạy thành công.
+
+### 2026-11-08 — Viết lại hướng dẫn sử dụng
+
+- Hoàn thành: Viết lại hướng dẫn cho học viên và gia sư bằng ngôn ngữ thao tác; bổ sung luồng yêu cầu gói học và bỏ tên payOS cùng mô tả rà soát tự động không đúng với cách vận hành hiện tại.
+- Kiểm tra: Đọc lại toàn trang; tìm `payOS`, `hằng ngày`, `hệ thống rà`, `tự động` và `chuyển sang hoàn` trong trang hướng dẫn (không còn kết quả); `git diff --check` qua.
+- Giới hạn: Chỉ sửa nội dung hướng dẫn; không chạy test ứng dụng.
+### 2026-11-08 — Sửa lỗi dữ liệu riêng của gia sư
+
+- Hoàn thành: Bổ sung composite index `sessions(tutorId, status, end)` còn thiếu trên Firebase production; đây là truy vấn buổi học cần xác nhận trong phần tổng kết gia sư.
+- Kiểm tra: Trước khi tạo index, truy vấn trả `FAILED_PRECONDITION: The query requires an index`; sau khi index đạt `READY`, chạy lại truy vấn thành công (0 kết quả với UID kiểm tra). `git diff --check` qua.
+- Giới hạn: Chưa gọi lại API bằng phiên đăng nhập của gia sư; chưa chạy kiểm tra UI.

@@ -18,23 +18,30 @@ export default function Help() {
         <div className="help-columns">
           <section className="help-guide">
             <h2>Dành cho học viên</h2>
-            <h3>1. Tìm và mua gói</h3>
+            <h3>1. Tìm gia sư và chọn cách học</h3>
             <p>
-              Xem hồ sơ gia sư, chọn buổi lẻ hoặc gói nhiều buổi rồi thanh toán
-              qua payOS. Với lần mua đầu, gia sư có 24 giờ để nhận đơn. Đơn quá
-              hạn được hệ thống rà hằng ngày để chuyển sang hoàn tiền.
+              Xem hồ sơ gia sư để chọn gói có sẵn, hoặc gửi “Yêu cầu gói học” và
+              ghi rõ mục tiêu, nội dung cùng thời gian bạn mong muốn. Gia sư sẽ
+              gửi đề nghị riêng để bạn xem trước khi quyết định.
             </p>
-            <h3>2. Thống nhất lịch</h3>
+            <h3>2. Xem đề nghị và thanh toán</h3>
             <p>
-              Trao đổi qua tin nhắn. Gia sư tạo buổi học với thời lượng đúng
-              theo gói, bạn xem trong mục Lịch học.
+              Nếu đồng ý với số buổi, thời lượng và giá, hãy thanh toán theo
+              hướng dẫn trên trang. Với đơn mua đầu tiên, gia sư có 24 giờ để
+              phản hồi. Nếu chưa có phản hồi đúng hạn, admin sẽ xem xét và
+              hướng dẫn xử lý.
             </p>
-            <h3>3. Xác nhận sau buổi</h3>
+            <h3>3. Thống nhất lịch học</h3>
+            <p>
+              Trao đổi với gia sư nếu cần, rồi xem lịch từng buổi trong mục Lịch
+              học. Thời lượng mỗi buổi theo gói bạn đã mua.
+            </p>
+            <h3>4. Xác nhận sau buổi</h3>
             <p>
               Trong 24 giờ sau khi kết thúc, chọn “Đã học” hoặc “Không diễn ra”.
               Buổi chỉ được tính khi cả hai xác nhận đã học.
             </p>
-            <h3>4. Hoàn tiền</h3>
+            <h3>5. Hoàn tiền</h3>
             <p>
               Bạn có thể yêu cầu hoàn phần buổi chưa học khi không còn buổi đã
               đặt. Cung cấp tài khoản ngân hàng để admin chuyển khoản.
@@ -47,10 +54,13 @@ export default function Help() {
               Tải ảnh, giấy tờ và mô tả kinh nghiệm. Hồ sơ được công khai sau
               khi admin duyệt.
             </p>
-            <h3>2. Quản lý gói học</h3>
+            <h3>2. Gửi đề nghị và quản lý gói học</h3>
             <p>
-              Đặt giá, số buổi và thời lượng. Chỉ mở bán gói bạn có thể nhận
-              dạy; phản hồi đơn đầu tiên trong 24 giờ.
+              Tạo các gói bạn sẵn sàng dạy. Khi có yêu cầu gói học, xem mục tiêu,
+              nội dung và thời gian mong muốn của học viên rồi gửi đề nghị gồm số
+              buổi, thời lượng và tổng giá, hoặc từ chối yêu cầu. Học viên sẽ xem
+              đề nghị và quyết định có thanh toán không. Với đơn mua đầu tiên,
+              hãy phản hồi trong 24 giờ.
             </p>
             <h3>3. Tạo và xác nhận buổi</h3>
             <p>

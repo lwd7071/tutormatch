@@ -44,6 +44,7 @@ export async function handleCreateOrder(
         tutorSnap,
         tutorUserSnap,
         sourceSnap,
+        requestSnap,
         settingsSnap,
         codeSnap,
         registrySnap,
@@ -55,6 +56,9 @@ export async function handleCreateOrder(
         sourceId
           ? tx.get(database.doc(`orders/${sourceId}`))
           : Promise.resolve(null),
+        pack.visibility === "private" && pack.requestId
+          ? tx.get(database.doc(`packageRequests/${pack.requestId}`))
+          : Promise.resolve(null),
         tx.get(database.doc("settings/main")),
         tx.get(database.doc(`orders/${candidate}`)),
         tx.get(database.doc(`paymentCodes/${candidate}`)),
@@ -64,6 +68,10 @@ export async function handleCreateOrder(
         return { orderCode: 0, created: false, collision: true };
       if (subjectSnap.data()?.active !== true)
         throw conflict("Môn học hiện không mở bán.");
+      const packageRequest = requestSnap?.data();
+      if (pack.visibility === "private" &&
+        (!packageRequest || pack.studentId !== user.uid || packageRequest.studentId !== user.uid || packageRequest.tutorId !== pack.tutorId || packageRequest.status !== "offered" || packageRequest.currentOfferId !== packageId))
+        throw conflict("Đề nghị gói học không còn hiệu lực.");
       if (
         pack.tutorId === user.uid ||
         !tutorAcceptsNewOrders(
@@ -88,6 +96,7 @@ export async function handleCreateOrder(
         studentId: user.uid,
         tutorId: pack.tutorId,
         packageId,
+        packageRequestId: packageRequest ? pack.requestId : null,
         title: pack.title,
         subjectId: pack.subjectId,
         price: pack.price,

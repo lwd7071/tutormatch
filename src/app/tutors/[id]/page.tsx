@@ -13,6 +13,7 @@ import type {
   TutorDetailDto,
 } from "@/lib/public-data";
 import { sizedTutorPhotoUrl } from "@/lib/photo";
+import { REVIEW_TAG_LABELS } from "@/lib/review-tags";
 
 const vnd = (n: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
@@ -221,6 +222,27 @@ export default function TutorProfile() {
           </section>
           <section className="stack">
             <div className="panel">
+              <h2>Yêu cầu gói học</h2>
+              <p>Cho gia sư biết mục tiêu, nội dung và khung giờ bạn mong muốn. Gia sư sẽ gửi gói riêng để bạn xem trước khi thanh toán.</p>
+              <form className="review-form" onSubmit={(event) => {
+                event.preventDefault();
+                const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+                void run({ action: "requestPackage", tutorId: id, subjectId: values.subjectId, purpose: values.purpose, topics: values.topics, count: Number(values.count), durationMinutes: Number(values.durationMinutes), mode: values.mode, timePreference: values.timePreference, note: values.note });
+              }}>
+                <label className="field"><span>Môn học</span><select name="subjectId" required>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></label>
+                <label className="field"><span>Bạn muốn đạt mục tiêu gì?</span><input name="purpose" required maxLength={300} placeholder="Ví dụ: ôn thi cuối kỳ, củng cố kiến thức" /></label>
+                <label className="field"><span>Bạn muốn học những nội dung nào?</span><textarea name="topics" required maxLength={1000} /></label>
+                <div className="form-grid">
+                  <label className="field"><span>Số buổi mong muốn</span><input name="count" type="number" min="1" max="100" defaultValue="4" required /></label>
+                  <label className="field"><span>Phút mỗi buổi</span><input name="durationMinutes" type="number" min="15" max="240" step="15" defaultValue="60" required /></label>
+                  <label className="field"><span>Hình thức</span><select name="mode"><option value="online">Trực tuyến</option><option value="offline">Trực tiếp</option></select></label>
+                </div>
+                <label className="field"><span>Ngày và khung giờ bạn có thể học</span><textarea name="timePreference" required maxLength={500} placeholder="Ví dụ: tối thứ 2, 4, 6 sau 19:00" /></label>
+                <label className="field"><span>Ghi chú thêm (không bắt buộc)</span><textarea name="note" maxLength={1000} /></label>
+                <button className="button" disabled={busy || !subjects.length}>Gửi yêu cầu</button>
+              </form>
+            </div>
+            <div className="panel" id="hoc-thu">
               <h2>Học thử miễn phí</h2>
               <p>
                 Chọn một giờ rảnh trong 14 ngày tới. Gia sư sẽ xác nhận trước
@@ -286,6 +308,13 @@ export default function TutorProfile() {
                     {"☆".repeat(5 - r.stars)}
                   </strong>
                   <p>{r.text}</p>
+                  {!!r.tags.length && (
+                    <div className="review-public-tags" aria-label="Hashtag từ học viên">
+                      {r.tags.map((tag) => (
+                        <span className="review-public-tag" key={tag}>#{REVIEW_TAG_LABELS[tag]}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
