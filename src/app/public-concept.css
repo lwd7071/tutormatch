@@ -35,7 +35,7 @@
 .hero-art::before, .hero-art::after { display: none; }
 .hero-star { width: 100%; max-width: 640px; filter: none; transform: none; animation: star-drift 5s ease-in-out infinite; animation-play-state: paused; }
 .hero-star[data-motion-active="true"] { animation-play-state: running; }
-.hero-star svg { display: block; width: 100%; height: auto; }
+.hero-star img { display: block; width: 100%; height: auto; }
 @keyframes star-drift { 50% { transform: translateY(-7px); } }
 .hero-benefits {
   display: grid;
