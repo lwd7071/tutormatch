@@ -27,9 +27,11 @@ export function TutorProfileEditor({
   const locked = submission?.status === "pending";
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageError, setMessageError] = useState(false);
   const [preview, setPreview] = useState("");
   const [previewEpoch, setPreviewEpoch] = useState(0);
   const [provinceCode, setProvinceCode] = useState(fields.provinceCode || "");
+  const [mode, setMode] = useState(fields.mode || "online");
   const photoKind = media.stagedPhoto
     ? "staged-photo"
     : media.photo
@@ -75,10 +77,12 @@ export function TutorProfileEditor({
     if (!file) return;
     if (file.size > 4_000_000) {
       setMessage("Tệp phải nhỏ hơn 4 MB.");
+      setMessageError(true);
       return;
     }
     setUploading(true);
     setMessage("");
+    setMessageError(false);
     try {
       const form = new FormData();
       form.append("kind", kind);
@@ -94,10 +98,12 @@ export function TutorProfileEditor({
       setMessage(
         `${kind === "photo" ? "Ảnh" : "Giấy tờ"} đã tải lên. Hãy gửi hồ sơ để admin duyệt.`,
       );
+      setMessageError(false);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Tải tệp chưa thành công.",
       );
+      setMessageError(true);
     } finally {
       setUploading(false);
     }
@@ -106,6 +112,7 @@ export function TutorProfileEditor({
   async function openDocument() {
     if (!documentKind) return;
     setMessage("");
+    setMessageError(false);
     try {
       const response = await fetch(`/api/media/${user.uid}/${documentKind}`, {
         headers: { Authorization: `Bearer ${await user.getIdToken()}` },
@@ -122,6 +129,7 @@ export function TutorProfileEditor({
       setMessage(
         error instanceof Error ? error.message : "Không mở được giấy tờ.",
       );
+      setMessageError(true);
     }
   }
 
@@ -135,12 +143,13 @@ export function TutorProfileEditor({
           ? "Đã duyệt"
           : "Chưa gửi duyệt";
   return (
-    <div className="panel">
-      <h2>
-        Hồ sơ gia sư <span className="badge">{status}</span>
-      </h2>
+    <div className="panel tutor-profile">
+      <header className="tutor-profile-header">
+        <h2>Hồ sơ gia sư</h2>
+        <span className="badge">{status}</span>
+      </header>
       {locked && (
-        <p className="help-text">
+        <p className="notice" role="status">
           Bản gửi duyệt đang được kiểm tra.{" "}
           {live.status === "approved"
             ? "Hồ sơ hiện tại vẫn công khai."
@@ -158,101 +167,10 @@ export function TutorProfileEditor({
           Hồ sơ đang tạm ẩn. Admin cần khôi phục trước khi nhận học viên mới.
         </p>
       )}
-      <div className="form-grid">
-        <div className="field">
-          <span>Ảnh chân dung · bắt buộc</span>
-          {preview && (
-            <img
-              src={preview}
-              alt="Ảnh chân dung đã tải lên"
-              style={{
-                width: 96,
-                height: 96,
-                objectFit: "cover",
-                borderRadius: 14,
-                marginBlock: 8,
-              }}
-            />
-          )}
-          <small>
-            {media.stagedPhoto
-              ? "Ảnh mới chờ gửi duyệt"
-              : media.photo
-                ? "Đã tải ảnh"
-                : "Chưa có ảnh"}
-          </small>
-          {!locked && (
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-label={
-                media.photo || media.stagedPhoto
-                  ? "Thay ảnh chân dung"
-                  : "Tải ảnh chân dung"
-              }
-              disabled={busy || uploading}
-              onChange={(event) => {
-                const input = event.currentTarget;
-                void upload("photo", input.files?.[0]).finally(() => {
-                  input.value = "";
-                });
-              }}
-            />
-          )}
-        </div>
-        <div className="field">
-          <span>Giấy tờ xác minh · bắt buộc</span>
-          <small>
-            {media.stagedDocument
-              ? "Giấy tờ mới chờ gửi duyệt"
-              : media.document
-                ? "Đã tải giấy tờ"
-                : "Chưa có giấy tờ"}
-          </small>
-          {documentKind && (
-            <button
-              className="text-button"
-              type="button"
-              onClick={openDocument}
-            >
-              Xem giấy tờ ↗
-            </button>
-          )}
-          {!locked && (
-            <input
-              type="file"
-              accept="image/jpeg,image/png,application/pdf"
-              aria-label={
-                media.document || media.stagedDocument
-                  ? "Thay giấy tờ xác minh"
-                  : "Tải giấy tờ xác minh"
-              }
-              disabled={busy || uploading}
-              onChange={(event) => {
-                const input = event.currentTarget;
-                void upload("document", input.files?.[0]).finally(() => {
-                  input.value = "";
-                });
-              }}
-            />
-          )}
-        </div>
-      </div>
-      <p className="help-text">
-        Ảnh: JPG, PNG hoặc WebP. Giấy tờ: JPG, PNG hoặc PDF. Tối đa 4 MB mỗi
-        tệp; giấy tờ chỉ bạn và admin xem được.
-      </p>
-      {message && (
-        <p className="notice" role="status">
-          {message}
-        </p>
-      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          const values = Object.fromEntries(
-            new FormData(event.currentTarget).entries(),
-          );
+          const values = Object.fromEntries(new FormData(event.currentTarget).entries());
           run(
             {
               action: live.id || submission ? "saveTutor" : "becomeTutor",
@@ -264,124 +182,164 @@ export function TutorProfileEditor({
           );
         }}
       >
-        <fieldset
-          disabled={busy || uploading || locked}
-          style={{ border: 0, padding: 0, margin: 0, width: "100%" }}
-        >
-          <div className="form-grid">
-            <label className="field">
-              <span>Tên hiển thị</span>
-              <input
-                name="name"
-                defaultValue={fields.name || ""}
-                required
-                maxLength={80}
-              />
-            </label>
-            <label className="field">
-              <span>Hình thức</span>
-              <select name="mode" defaultValue={fields.mode || "online"}>
-                <option value="online">Trực tuyến</option>
-                <option value="offline">Trực tiếp</option>
-                <option value="both">Cả hai</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Khu vực dạy trực tiếp</span>
-              <input
-                name="location"
-                defaultValue={fields.location || ""}
-                maxLength={120}
-              />
-            </label>
-            <label className="field">
-              <span>Tỉnh/thành dạy trực tiếp</span>
-              <select
-                name="provinceCode"
-                value={provinceCode}
-                onChange={(event) => setProvinceCode(event.target.value)}
-              >
-                <option value="">Chưa chọn</option>
-                {provinces.map((place) => (
-                  <option value={place.code} key={place.code}>
-                    {place.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Phường/xã</span>
-              <select
-                name="wardCode"
-                key={provinceCode}
-                required={!!provinceCode}
-                defaultValue={
-                  provinceCode === fields.provinceCode
-                    ? fields.wardCode || ""
-                    : ""
-                }
-              >
-                <option value="">Chưa chọn</option>
-                {wards
-                  .filter((place) => place.provinceCode === provinceCode)
-                  .map((place) => (
-                    <option value={place.code} key={place.code}>
-                      {place.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Lịch rảnh (mô tả)</span>
-              <input
-                name="availability"
-                defaultValue={fields.availability || ""}
-                maxLength={500}
-              />
-            </label>
-            <label className="field wide">
-              <span>Giới thiệu</span>
-              <textarea
-                name="bio"
-                defaultValue={fields.bio || ""}
-                required
-                maxLength={2000}
-              />
-            </label>
-            <label className="field wide">
-              <span>Video giới thiệu công khai trên Google Drive · không bắt buộc</span>
-              <input
-                name="videoUrl"
-                type="url"
-                defaultValue={fields.videoUrl || ""}
-                maxLength={500}
-                placeholder="https://drive.google.com/file/d/.../view"
-              />
-              <small>
-                Bật quyền “Bất kỳ ai có đường liên kết”. Link sẽ hiển thị sau khi admin duyệt hồ sơ.
-              </small>
-            </label>
-          </div>
-          {!locked && (
-            <div className="form-actions">
-              <button
-                className="button"
-                disabled={
-                  !(
-                    (media.photo || media.stagedPhoto) &&
-                    (media.document || media.stagedDocument)
-                  )
-                }
-              >
-                {live.status === "approved" || live.status === "suspended"
-                  ? "Gửi thay đổi duyệt"
-                  : submission?.status === "rejected"
-                    ? "Gửi lại hồ sơ"
-                    : "Gửi hồ sơ duyệt"}
-              </button>
+        <fieldset className="tutor-profile-fields" disabled={busy || uploading || locked}>
+          <section className="tutor-profile-section" aria-labelledby="profile-basics-title">
+            <div className="tutor-profile-section-heading">
+              <h3 id="profile-basics-title">Thông tin hồ sơ</h3>
+              <p>Thông tin học viên sẽ thấy khi xem hồ sơ của bạn.</p>
             </div>
-          )}
+            <div className="tutor-profile-fields-grid">
+              <label className="field">
+                <span>Tên hiển thị <span aria-hidden="true">*</span></span>
+                <input name="name" defaultValue={fields.name || ""} required maxLength={80} />
+              </label>
+              <label className="field">
+                <span>Giới thiệu <span aria-hidden="true">*</span></span>
+                <textarea name="bio" defaultValue={fields.bio || ""} required maxLength={2000} rows={4} />
+              </label>
+              <label className="field">
+                <span>Lịch rảnh (mô tả)</span>
+                <input name="availability" defaultValue={fields.availability || ""} maxLength={500} placeholder="Ví dụ: Tối thứ 2, 4 và cuối tuần" />
+              </label>
+            </div>
+          </section>
+          <section className="tutor-profile-section" aria-labelledby="profile-teaching-title">
+            <div className="tutor-profile-section-heading">
+              <h3 id="profile-teaching-title">Hình thức và nơi dạy</h3>
+            </div>
+            <div className="tutor-profile-fields-grid">
+              <label className="field">
+                <span>Hình thức dạy</span>
+                <select name="mode" value={mode} onChange={(event) => setMode(event.target.value)}>
+                  <option value="online">Trực tuyến</option>
+                  <option value="offline">Trực tiếp</option>
+                  <option value="both">Cả hai</option>
+                </select>
+              </label>
+              <div className="tutor-profile-offline tutor-profile-fields-grid" hidden={mode === "online"}>
+                <label className="field">
+                  <span>Khu vực dạy trực tiếp</span>
+                  <input name="location" defaultValue={fields.location || ""} maxLength={120} placeholder="Ví dụ: Quận 3 và khu vực lân cận" />
+                </label>
+                <label className="field">
+                  <span>Tỉnh/thành dạy trực tiếp</span>
+                  <select name="provinceCode" value={provinceCode} onChange={(event) => setProvinceCode(event.target.value)}>
+                    <option value="">Chưa chọn</option>
+                    {provinces.map((place) => (
+                      <option value={place.code} key={place.code}>{place.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Phường/xã</span>
+                  <select
+                    name="wardCode"
+                    key={provinceCode}
+                    required={mode !== "online" && !!provinceCode}
+                    defaultValue={provinceCode === fields.provinceCode ? fields.wardCode || "" : ""}
+                  >
+                    <option value="">Chưa chọn</option>
+                    {wards.filter((place) => place.provinceCode === provinceCode).map((place) => (
+                      <option value={place.code} key={place.code}>{place.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
         </fieldset>
+        <section className="tutor-profile-section" aria-labelledby="profile-media-title">
+          <div className="tutor-profile-section-heading">
+            <h3 id="profile-media-title">Ảnh và xác minh</h3>
+            <p>Cần cả hai tệp trước khi gửi duyệt.</p>
+          </div>
+          <div className="tutor-profile-media-grid">
+            <div className="tutor-profile-media-item">
+              {preview ? (
+                <img className="tutor-profile-photo" src={preview} alt="Ảnh chân dung đã tải lên" />
+              ) : (
+                <div className="tutor-profile-photo tutor-profile-photo-empty" aria-hidden="true">Ảnh</div>
+              )}
+              <div className="tutor-profile-media-copy">
+                <strong>Ảnh chân dung <span aria-hidden="true">*</span></strong>
+                <span>{media.stagedPhoto ? "Ảnh mới chờ gửi duyệt" : media.photo ? "Đã tải ảnh" : "Chưa có ảnh"}</span>
+                <small>JPG, PNG hoặc WebP · tối đa 4 MB</small>
+                {!locked && (
+                  <label className="tutor-profile-upload">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      aria-label={media.photo || media.stagedPhoto ? "Thay ảnh chân dung" : "Tải ảnh chân dung"}
+                      disabled={busy || uploading}
+                      onChange={(event) => {
+                        const input = event.currentTarget;
+                        void upload("photo", input.files?.[0]).finally(() => { input.value = ""; });
+                      }}
+                    />
+                    <span>{media.photo || media.stagedPhoto ? "Thay ảnh" : "Tải ảnh lên"}</span>
+                  </label>
+                )}
+              </div>
+            </div>
+            <div className="tutor-profile-media-item">
+              <div className="tutor-profile-document-mark" aria-hidden="true">PDF</div>
+              <div className="tutor-profile-media-copy">
+                <strong>Giấy tờ xác minh <span aria-hidden="true">*</span></strong>
+                <span>{media.stagedDocument ? "Giấy tờ mới chờ gửi duyệt" : media.document ? "Đã tải giấy tờ" : "Chưa có giấy tờ"}</span>
+                <small>JPG, PNG hoặc PDF · tối đa 4 MB. Chỉ bạn và admin xem được.</small>
+                <div className="tutor-profile-media-actions">
+                  {!locked && (
+                    <label className="tutor-profile-upload">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,application/pdf"
+                        aria-label={media.document || media.stagedDocument ? "Thay giấy tờ xác minh" : "Tải giấy tờ xác minh"}
+                        disabled={busy || uploading}
+                        onChange={(event) => {
+                          const input = event.currentTarget;
+                          void upload("document", input.files?.[0]).finally(() => { input.value = ""; });
+                        }}
+                      />
+                      <span>{media.document || media.stagedDocument ? "Thay tệp" : "Tải tệp lên"}</span>
+                    </label>
+                  )}
+                  {documentKind && (
+                    <button className="text-button" type="button" onClick={openDocument}>Xem giấy tờ ↗</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {uploading && <p className="help-text" role="status">Đang tải tệp lên...</p>}
+          {message && <p className={`notice${messageError ? " error" : ""}`} role={messageError ? "alert" : "status"}>{message}</p>}
+        </section>
+        <details className="tutor-profile-optional" open={fields.videoUrl ? true : undefined}>
+          <summary>Video giới thiệu <span>Không bắt buộc</span></summary>
+          <fieldset className="tutor-profile-fields" disabled={busy || uploading || locked}>
+            <label className="field">
+              <span>Đường liên kết Google Drive</span>
+              <input name="videoUrl" type="url" defaultValue={fields.videoUrl || ""} maxLength={500} placeholder="https://drive.google.com/file/d/.../view" />
+              <small>Bật quyền “Bất kỳ ai có đường liên kết”. Video sẽ hiển thị sau khi admin duyệt hồ sơ.</small>
+            </label>
+          </fieldset>
+        </details>
+        {!locked && (
+          <div className="form-actions tutor-profile-actions">
+            <button
+              className="button"
+              disabled={busy || uploading || !((media.photo || media.stagedPhoto) && (media.document || media.stagedDocument))}
+            >
+              {live.status === "approved" || live.status === "suspended"
+                ? "Gửi thay đổi duyệt"
+                : submission?.status === "rejected"
+                  ? "Gửi lại hồ sơ"
+                  : "Gửi hồ sơ duyệt"}
+            </button>
+            {!((media.photo || media.stagedPhoto) && (media.document || media.stagedDocument)) && (
+              <small>Hãy tải ảnh chân dung và giấy tờ xác minh để gửi hồ sơ.</small>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );
