@@ -146,3 +146,9 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Đổi các link `/#...` ở menu sang anchor HTML để bấm lại cùng hash vẫn cuộn đúng; gom kích thước, viền, bo góc, font và trạng thái của nút hành động về CSS chung. Nút chính cao 52 px, nút nhỏ cao 42 px trên desktop và 44 px trên mobile; hai nút hero rộng theo nội dung.
 - Kiểm tra: UI smoke mới tái hiện lỗi trước sửa rồi qua sau sửa; kiểm tra bấm lại menu desktop/mobile, chuyển từ trang khác, tìm kiếm, trạng thái biểu mẫu có/chưa mở, focus bàn phím, giảm chuyển động và không tràn ngang ở 320, 390, 768, 1440 px. `npm run typecheck`, `npm run build`, `npm test` (43/43) và `git diff --check` qua; đã xem ảnh chụp hero mobile/desktop và đo nút trên trang chủ, hướng dẫn, khu đăng nhập.
 - Giới hạn: Chưa kiểm tra nút trong khu quản lý bằng tài khoản đăng nhập thật; các nút đó dùng cùng lớp CSS đã được kiểm tra ở trang công khai.
+
+### 2026-11-09 — Cập nhật minh họa trang chủ [6f67f44]
+
+- Hoàn thành: Thay SVG hero bằng ảnh minh họa 2D người dùng đã chọn, đã bỏ mảng đỏ giữa hai chân ngôi sao; giữ bố cục responsive của trang chủ.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:ui` trên các khung 320, 390, 768 và 1440 px, cùng `git diff --check` đều qua.
+- Giới hạn: Chưa xem trực tiếp trên thiết bị thật; kiểm tra giao diện chạy bằng Chrome headless.
