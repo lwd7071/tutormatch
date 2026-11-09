@@ -137,7 +137,7 @@ export default function TutorProfile() {
   return (
     <>
       <Header />
-      <main className="wrap">
+      <main className="wrap public-profile">
         <div className="profile-hero">
           <div className="profile-portrait">
             {tutor.photoUrl ? (

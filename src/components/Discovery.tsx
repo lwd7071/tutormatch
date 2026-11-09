@@ -100,74 +100,22 @@ function TutorCard({
   ];
   const price = Math.min(...packages.map((p) => p.price / p.count));
   return (
-    <article
-      className="tutor-card"
-      tabIndex={tutor.videoUrl ? 0 : undefined}
-      onMouseEnter={() => onPreview(tutor.videoUrl ? tutor.id : "")}
-      onFocusCapture={() => onPreview(tutor.videoUrl ? tutor.id : "")}
-      onClick={(event) => {
-        if (
-          tutor.videoUrl &&
-          window.matchMedia("(hover: none)").matches &&
-          !(event.target as HTMLElement).closest("a, button")
-        )
-          onPreview(tutor.id);
-      }}
-    >
-      <div className="tutor-photo">
-        {tutor.photoUrl ? (
-          <img
-            src={sizedTutorPhotoUrl(tutor.photoUrl, "card")}
-            alt={`Ảnh gia sư ${tutor.name}`}
-            width={800}
-            height={440}
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <span>{tutor.name.slice(0, 1)}</span>
-        )}
-      </div>
-      <div className="tutor-card-body">
-        <div className="tutor-card-top">
-          <span className="tutor-label">
-            {tutor.mode === "both"
-              ? "Trực tuyến & trực tiếp"
-              : tutor.mode === "offline"
-                ? "Gặp trực tiếp"
-                : "Học trực tuyến"}
-          </span>
+    <article className="tutor-card">
+      <div className="tutor-card-head">
+        <div className="tutor-photo">
+          {tutor.photoUrl ? (
+            <img
+              src={sizedTutorPhotoUrl(tutor.photoUrl, "card")}
+              alt={`Ảnh gia sư ${tutor.name}`}
+              width={800}
+              height={440}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span>{tutor.name.slice(0, 1)}</span>
+          )}
         </div>
-        <h3>{tutor.name}</h3>
-        <p>{tutor.bio}</p>
-        <dl className="tutor-facts">
-          <div>
-            <dt>Môn</dt>
-            <dd>{names.join(", ") || "Chưa cập nhật"}</dd>
-          </div>
-          <div>
-            <dt>Khu vực</dt>
-            <dd>
-              {tutor.mode === "online"
-                ? "Học trực tuyến"
-                : tutor.location || "Chưa cập nhật"}
-            </dd>
-          </div>
-          <div>
-            <dt>Lịch rảnh</dt>
-            <dd>{labelSchedule(tutor.weeklySlots, tutor.availability)}</dd>
-          </div>
-          <div>
-            <dt>Đánh giá</dt>
-            <dd>
-              {item.reviewCount
-                ? `★ ${item.rating.toFixed(1)} · ${item.reviewCount} lượt`
-                : "Chưa có đánh giá"}
-            </dd>
-          </div>
-        </dl>
-      </div>
-      <div className="tutor-bottom">
         <button
           className="save-button"
           type="button"
@@ -177,18 +125,41 @@ function TutorCard({
         >
           {saved ? "♥ Đã lưu" : "♡ Lưu"}
         </button>
+      </div>
+      <div className="tutor-card-body">
+        <h3>{tutor.name}</h3>
+        <p className="tutor-subjects">{names.join(" · ") || "Chưa cập nhật môn học"}</p>
+        <span className="tutor-label">
+          {tutor.mode === "both"
+            ? "Trực tuyến & trực tiếp"
+            : tutor.mode === "offline"
+              ? "Gặp trực tiếp"
+              : "Học trực tuyến"}
+        </span>
+        <p className="tutor-rating">
+          {item.reviewCount
+            ? `★ ${item.rating.toFixed(1)} · ${item.reviewCount} lượt`
+            : "Chưa có đánh giá"}
+        </p>
+      </div>
+      <div className="tutor-bottom">
         <div className="tutor-price">
           <small>Từ</small>
           <strong>{Number.isFinite(price) ? vnd(price) : "Chưa cập nhật"}</strong>
           <small> / buổi</small>
         </div>
         <div className="tutor-actions">
-          <Link className="button button-small" href={`/tutors/${tutor.id}#hoc-thu`}>
-            Xem lịch học thử
-          </Link>
           <Link className="button button-small button-outline" href={`/tutors/${tutor.id}`}>
             Xem hồ sơ
           </Link>
+          <Link className="button button-small" href={`/tutors/${tutor.id}#hoc-thu`}>
+            Xem lịch học thử
+          </Link>
+          {tutor.videoUrl && (
+            <button className="text-button tutor-video-trigger" type="button" onClick={() => onPreview(tutor.id)}>
+              Xem video giới thiệu
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -268,6 +239,10 @@ export function Discovery() {
     [matches, setMatches] = useState<CatalogItemDto[] | null>(null),
     [quizBusy, setQuizBusy] = useState(false);
   const generation = useRef(0);
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search).get("query")?.trim();
+    if (query) setFilters((current) => ({ ...current, query }));
+  }, []);
   const set = (key: keyof Filters, value: string) => {
     setMatches(null);
     setPageNumber(1);
@@ -818,7 +793,7 @@ export function Discovery() {
           ) : error ? (
             <div className="empty-card error">{error}</div>
           ) : items.length ? (
-            <div className={`tutor-results${items.some((item) => item.tutor.id === activePreviewId) ? " has-preview" : ""}`}>
+            <div className="tutor-results">
               <div className="tutor-grid">
                 {items.map((item) => (
                   <div className="tutor-result-item" key={item.tutor.id}>
@@ -830,18 +805,13 @@ export function Discovery() {
                       onPreview={(id) => setActivePreviewId(id)}
                     />
                     {activePreviewId === item.tutor.id && item.tutor.videoUrl && (
-                      <div className="tutor-video-preview-mobile">
+                      <div className="tutor-video-preview-inline">
                         <TutorVideoPreview item={item} onClose={() => setActivePreviewId("")} />
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-              {items.map((item) => item.tutor.id === activePreviewId && (
-                <div className="tutor-video-preview-desktop" key={item.tutor.id}>
-                  <TutorVideoPreview item={item} onClose={() => setActivePreviewId("")} />
-                </div>
-              ))}
             </div>
           ) : (
             <div className="empty-card">

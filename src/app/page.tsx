@@ -1,6 +1,7 @@
 import { Header } from "@/components/Header";
 import { Star } from "@/components/Star";
 import { Discovery } from "@/components/Discovery";
+import { HeroIllustration } from "@/components/HeroIllustration";
 
 export default function Home() {
   return (
@@ -19,6 +20,10 @@ export default function Home() {
                 Nhờ TutorMatch tìm gia sư học 1–1 theo môn, lớp và lịch của bạn.
                 Phụ huynh gửi nhu cầu, chúng mình liên hệ trong 1 ngày làm việc.
               </p>
+              <form className="hero-search" action="/#tim-gia-su" method="get">
+                <input name="query" type="search" maxLength={100} aria-label="Tìm gia sư theo tên hoặc môn học" placeholder="Bạn muốn học môn gì? Ví dụ: Toán, IELTS…" />
+                <button className="button" type="submit">Tìm ngay <span aria-hidden="true">→</span></button>
+              </form>
               <div className="hero-actions">
                 <a className="button hero-cta" href="#gui-yeu-cau">
                   Nhờ tìm gia sư <span aria-hidden>↗</span>
@@ -33,16 +38,15 @@ export default function Home() {
               </div>
             </div>
             <div className="hero-art" aria-hidden="true">
-              <span className="hero-art-label">MỖI BẠN MỘT NHỊP HỌC</span>
               <div className="hero-star">
-                <Star size={300} mood="wink" />
+                <HeroIllustration />
               </div>
-              <span className="hero-art-caption">
-                Tìm đúng người dạy.
-                <br />
-                Bắt đầu theo cách của mình.
-              </span>
             </div>
+          </div>
+          <div className="wrap hero-benefits" aria-label="Điểm nổi bật của TutorMatch">
+            <div><span aria-hidden="true">✦</span><strong>1–1 theo nhu cầu</strong><small>Đúng môn, đúng lịch, đúng bạn</small></div>
+            <div><span aria-hidden="true">▦</span><strong>Linh hoạt thời gian</strong><small>Chọn khung giờ phù hợp</small></div>
+            <div><span aria-hidden="true">♡</span><strong>Học thử miễn phí</strong><small>Chọn gia sư rồi học thử</small></div>
           </div>
         </section>
         <Discovery />

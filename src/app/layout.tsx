@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import { Motion } from "@/components/Motion";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { Baloo_2, Be_Vietnam_Pro } from "next/font/google";
 import "./styles.css";
 import "./redesign.css";
+import "./public-concept.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ["400", "600", "700"],
   subsets: ["latin", "vietnamese"],
   display: "swap",
+});
+const baloo = Baloo_2({
+  weight: ["700", "800"],
+  subsets: ["latin", "vietnamese"],
+  display: "swap",
+  variable: "--font-baloo",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +35,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={beVietnamPro.className}>
+    <html lang="vi" className={`${beVietnamPro.className} ${baloo.variable}`}>
       <body>{children}<Motion /></body>
     </html>
   );

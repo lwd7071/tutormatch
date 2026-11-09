@@ -9,7 +9,9 @@ const browser = await chromium.launch({
 });
 try {
   for (const viewport of [
+    { width: 320, height: 760 },
     { width: 390, height: 844 },
+    { width: 768, height: 900 },
     { width: 1440, height: 900 },
   ]) {
     const page = await browser.newPage({ viewport });
@@ -61,6 +63,11 @@ try {
     );
     await page.goto(baseUrl, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: /Gia sư hợp gu/ }).waitFor();
+    await page.getByRole("searchbox", { name: "Tìm gia sư theo tên hoặc môn học" }).fill("Toán");
+    await page.getByRole("button", { name: /Tìm ngay/ }).click();
+    await page.waitForFunction(() => location.hash === "#tim-gia-su" && new URLSearchParams(location.search).get("query") === "Toán");
+    await page.waitForFunction(() => document.querySelector('.search-panel input')?.value === "Toán");
+    await page.getByRole("button", { name: "Xóa bộ lọc" }).click();
     await page.locator(".hero-art").scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector(".hero-star")?.getAttribute("data-motion-active") === "true");
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -71,12 +78,13 @@ try {
     await page.locator(".footer").scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector(".hero-star")?.getAttribute("data-motion-active") === "false");
     await page.getByRole("heading", { name: "Chưa thấy gia sư phù hợp?" }).waitFor();
+    await page.getByText("Biểu mẫu sẽ được mở khi TutorMatch sẵn sàng nhận yêu cầu.").waitFor();
     await page.getByRole("heading", { name: "Gia sư mẫu" }).waitFor();
     await page.getByText("★ 4.5 · 2 lượt").waitFor();
     if (await page.locator(".tutor-video-frame iframe").count())
       throw new Error("Video Drive được tải trước khi người dùng bấm Play.");
-    if (viewport.width < 700) await page.locator(".tutor-card").click();
-    else await page.locator(".tutor-card").hover();
+    await page.getByRole("button", { name: "Xem video giới thiệu" }).click();
+    await page.locator(".tutor-video-preview-inline").waitFor();
     await page.getByRole("button", { name: "Phát video giới thiệu của Gia sư mẫu" }).waitFor();
     await page.getByRole("button", { name: "Phát video giới thiệu của Gia sư mẫu" }).click();
     await page.locator('iframe[src="https://drive.google.com/file/d/abc123/preview"]').waitFor();
@@ -139,8 +147,12 @@ try {
     await page
       .getByRole("heading", { name: /Học vui, mọi bước rõ ràng/ })
       .waitFor();
+    if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))
+      throw new Error(`Trang hướng dẫn tràn ngang ở ${viewport.width}px.`);
     await page.goto(`${baseUrl}/privacy`, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "Thông tin về dữ liệu cá nhân" }).waitFor();
+    if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))
+      throw new Error(`Trang bảo mật tràn ngang ở ${viewport.width}px.`);
     await page.goto(`${baseUrl}/app`, { waitUntil: "networkidle" });
     await page
       .getByRole("heading", { name: "Xin chào bạn!" })

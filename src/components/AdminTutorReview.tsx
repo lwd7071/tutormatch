@@ -80,11 +80,13 @@ function ReviewPhoto({
 
 export function AdminTutorReview({
   data,
+  section,
   run,
   busy,
   user,
 }: {
   data: Row;
+  section: string;
   run: (action: Row) => void;
   busy: boolean;
   user: User;
@@ -116,7 +118,7 @@ export function AdminTutorReview({
 
   return (
     <div className="stack">
-      <div className="panel">
+      {section === "pending" && <div className="panel">
         <h2>Hồ sơ chờ duyệt ({pending.length})</h2>
         {pending.length ? (
           pending.map((submission) => {
@@ -259,8 +261,8 @@ export function AdminTutorReview({
             {error}
           </p>
         )}
-      </div>
-      <div className="panel">
+      </div>}
+      {section === "approved" && <div className="panel">
         <h2>Gia sư đã duyệt</h2>
         {tutors.filter((t) => ["approved", "suspended"].includes(t.status))
           .length ? (
@@ -303,7 +305,7 @@ export function AdminTutorReview({
         ) : (
           <p className="help-text">Chưa có gia sư được duyệt.</p>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

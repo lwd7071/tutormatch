@@ -501,12 +501,16 @@ h1 em {
   gap: 8px;
   margin: 0 0 18px;
   border-bottom: 1px solid var(--line);
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 .settings-subnav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 46px;
+  flex: 0 0 auto;
   padding: 0 16px;
   border-bottom: 3px solid transparent;
   color: var(--muted);

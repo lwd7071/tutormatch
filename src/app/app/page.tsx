@@ -13,6 +13,7 @@ import { api, chatPage, pageList, privateData, useUser } from "@/lib/use-user";
 import { AvailabilityEditor } from "@/components/AvailabilityEditor";
 import { Pagination } from "@/components/Pagination";
 import { REVIEW_TAG_IDS, REVIEW_TAG_LABELS, type ReviewTagId } from "@/lib/review-tags";
+import { selectedSection, workspaceResources, workspaceSections } from "@/lib/workspace-sections";
 
 type Row = Record<string, any>;
 const vnd = (n: number) =>
@@ -180,42 +181,17 @@ function WorkspaceContent() {
   const tab = tabs.some(([key]) => key === requestedTab)
     ? requestedTab
     : "overview";
-  const settingsSection =
-    ["fee", "matchForm"].includes(searchParams.get("section") || "")
-      ? searchParams.get("section")!
-      : "subjects";
-  const tabResources: Record<string, string[]> =
-    role === "admin"
-      ? {
-          tutors: ["submissions", "tutors"],
-          disputes: ["sessions"],
-          money: ["refunds", "withdrawals"],
-          users: ["users"],
-          reviews: ["reviews"],
-          settings: settingsSection === "subjects" ? ["subjects"] : [],
-        }
-      : role === "tutor"
-        ? {
-            profile: ["packages", "subjects"],
-            orders: ["orders", "trials"],
-            sessions: ["sessions", "orders", "trials"],
-            wallet: ["withdrawals"],
-            notices: ["notices"],
-          }
-        : {
-            orders: ["orders", "refunds"],
-            sessions: ["sessions"],
-            notices: ["notices"],
-          };
-  if (tab === "chat") tabResources.chat = ["orders", "trials"];
-  const resourceKey = (tabResources[tab] || []).join(",");
+  const childSections = workspaceSections[role]?.[tab] || [];
+  const section = selectedSection(role, tab, searchParams.get("section"));
+  const resources = workspaceResources(role, tab, section);
+  const resourceKey = resources.join(",");
   const pageLoadGeneration = useRef(0);
   const pageNumbers = useRef<Record<string, number>>({});
   const pageKey = (view: string, resource: string) => `${view}:${resource}`;
   useEffect(() => {
     setAdminView("queue");
     setHistoryData(null);
-  }, [tab]);
+  }, [tab, section]);
   useEffect(() => {
     for (const resource of resourceKey.split(",").filter(Boolean))
       pageNumbers.current[pageKey(adminView, resource)] = 1;
@@ -292,8 +268,7 @@ function WorkspaceContent() {
     setBusy(true);
     setError("");
     try {
-      const resources =
-        tab === "money" ? ["refunds", "withdrawals"] : ["sessions"];
+      const resources = tab === "money" ? [section] : ["sessions"];
       const pages = await Promise.all(
         resources.map((resource) => pageList(user, resource, 1, "all")),
       );
@@ -480,6 +455,21 @@ function WorkspaceContent() {
                   </Link>
                 ))}
               </nav>
+              {childSections.length > 0 && (
+                <nav className="settings-subnav" aria-label={`Mục ${tabs.find(([key]) => key === tab)?.[1] || tab}`}>
+                  {childSections.map(([key, label]) => (
+                    <Link
+                      key={key}
+                      href={`/app?tab=${tab}&section=${key}`}
+                      scroll={false}
+                      aria-current={section === key ? "page" : undefined}
+                      className={`settings-subnav-link${section === key ? " active" : ""}`}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </nav>
+              )}
               {role === "student" &&
                 (tab === "becomeTutor" ? (
                   <TutorProfileEditor
@@ -491,37 +481,37 @@ function WorkspaceContent() {
                   />
                 ) : (
                   <>
-                    {tab === "orders" && <PendingPayments data={data} />}
-                    <StudentView tab={tab} data={data} run={run} busy={busy} />
+                    {tab === "orders" && section === "packages" && <PendingPayments data={data} />}
+                    <StudentView tab={tab} section={section} data={data} run={run} busy={busy} />
                   </>
                 ))}
               {role === "tutor" && (
                 <>
                   {tab === "profile" && (
                     <>
-                      <TutorProfileEditor
+                      {section === "details" && <TutorProfileEditor
                         user={user}
                         data={data}
                         run={run}
                         refresh={refresh}
                         busy={busy}
-                      />
-                      <AvailabilityEditor
+                      />}
+                      {section === "availability" && <AvailabilityEditor
                         profile={data.profile || {}}
                         run={run}
                         busy={busy}
-                      />
-                      <PackageTools data={data} run={run} busy={busy} />
-                      <CreatePackageForm data={data} run={run} busy={busy} />
+                      />}
+                      {section === "packages" && <PackageTools data={data} run={run} busy={busy} />}
+                      {section === "create" && <CreatePackageForm data={data} run={run} busy={busy} />}
                     </>
                   )}
-                  <TutorView tab={tab} data={data} run={run} busy={busy} />
+                  <TutorView tab={tab} section={section} data={data} run={run} busy={busy} />
                   {tab === "overview" && <NoticesPanel data={data} />}
                 </>
               )}
               {role === "admin" && (
                 <>
-                  {tab === "work" && user && <AdminWorkQueue user={user} busy={busy} onDone={async () => { await refresh(user); setMessage("Đã xử lý mục được chọn."); }} />}
+                  {tab === "work" && user && <AdminWorkQueue key={section} group={section} user={user} busy={busy} onDone={async () => { await refresh(user); setMessage("Đã xử lý mục được chọn."); }} />}
                   {["money", "disputes"].includes(tab) && (
                     <div
                       className="item-actions"
@@ -547,37 +537,13 @@ function WorkspaceContent() {
                     </div>
                   )}
                   {tab === "settings" && (
-                    <>
-                      <nav
-                        className="settings-subnav"
-                        aria-label="Mục thiết lập"
-                      >
-                        {([
-                          ["subjects", "Môn học"],
-                          ["fee", "Phí nền tảng"],
-                          ["matchForm", "Form tìm gia sư"],
-                        ] as const).map(([section, label]) => (
-                          <Link
-                            key={section}
-                            href={`/app?tab=settings&section=${section}`}
-                            scroll={false}
-                            aria-current={
-                              settingsSection === section ? "page" : undefined
-                            }
-                            className={`settings-subnav-link${
-                              settingsSection === section ? " active" : ""
-                            }`}
-                          >
-                            {label}
-                          </Link>
-                        ))}
-                      </nav>
-                      <div key={settingsSection} className="settings-page">
-                        {settingsSection === "subjects" ? (
+                    <div key={section} className="settings-page">
+                        {section === "subjects" ? (
                           <SubjectTools data={data} run={run} busy={busy} />
-                        ) : settingsSection === "fee" ? (
+                        ) : section === "fee" ? (
                           <AdminView
                             tab="settings"
+                            section={section}
                             data={shownData || data}
                             run={run}
                             busy={busy}
@@ -586,10 +552,9 @@ function WorkspaceContent() {
                         ) : (
                           <MatchFormSettings data={data} run={run} busy={busy} />
                         )}
-                      </div>
-                    </>
+                    </div>
                   )}
-                  {tab === "money" && (
+                  {tab === "money" && section === "refunds" && (
                     <RefundReviewTools
                       data={shownData || data}
                       run={run}
@@ -599,6 +564,7 @@ function WorkspaceContent() {
                   {tab !== "settings" && (
                     <AdminView
                       tab={tab}
+                      section={section}
                       data={shownData || data}
                       run={run}
                       busy={busy}
@@ -607,7 +573,7 @@ function WorkspaceContent() {
                   )}
                 </>
               )}
-              {(tabResources[tab] || []).map((resource) => {
+              {resources.map((resource) => {
                 const info = shownData?.pageInfo?.[resource];
                 return (
                   info && (
@@ -647,10 +613,10 @@ function PackageTools({
   busy: boolean;
 }) {
   const packages: Row[] = data.packages || [];
-  if (!packages.length) return null;
   return (
     <div className="panel">
       <h2>Quản lý gói đang bán</h2>
+      {!packages.length && <p>Bạn chưa tạo gói học nào.</p>}
       {packages.map((p) => (
         <div className="item" key={p.id}>
           <div>
@@ -953,11 +919,13 @@ function NoticesPanel({ data }: { data: Row }) {
 
 function StudentView({
   tab,
+  section,
   data,
   run,
   busy,
 }: {
   tab: string;
+  section: string;
   data: Row;
   run: (a: Row, s?: string) => Promise<boolean>;
   busy: boolean;
@@ -1047,7 +1015,7 @@ function StudentView({
   if (tab === "orders")
     return (
       <>
-        <div className="panel">
+        {section === "packages" && <div className="panel">
           <h2>Gói học của tôi</h2>
           {orders.length ? (
             orders
@@ -1129,8 +1097,8 @@ function StudentView({
               <Link href="/#tim-gia-su">Tìm gia sư →</Link>
             </p>
           )}
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "requests" && <div className="panel">
           <h2>Yêu cầu gói học</h2>
           {(data.packageRequests || []).length ? data.packageRequests.map((request: Row) => (
             <div className="item" key={request.id}>
@@ -1147,8 +1115,8 @@ function StudentView({
               </div>}
             </div>
           )) : <p>Bạn chưa gửi yêu cầu gói học nào.</p>}
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "refunds" && <div className="panel">
           <h2>Hoàn tiền</h2>
           {(data.refunds || []).length ? (
             data.refunds.map((r: Row) => (
@@ -1191,7 +1159,7 @@ function StudentView({
           ) : (
             <p>Chưa có yêu cầu hoàn tiền.</p>
           )}
-        </div>
+        </div>}
       </>
     );
   if (tab === "sessions")
@@ -1306,11 +1274,13 @@ function ReviewForm({
 
 function TutorView({
   tab,
+  section,
   data,
   run,
   busy,
 }: {
   tab: string;
+  section: string;
   data: Row;
   run: (a: Row, s?: string) => void;
   busy: boolean;
@@ -1388,7 +1358,7 @@ function TutorView({
   if (tab === "orders")
     return (
       <>
-        <div className="panel">
+        {section === "purchases" && <div className="panel">
           <h2>Học viên và đơn mua</h2>
           {orders.length ? (
             orders
@@ -1434,8 +1404,8 @@ function TutorView({
           ) : (
             <p>Chưa có học viên mua gói.</p>
           )}
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "requests" && <div className="panel">
           <h2>Yêu cầu gói học mới</h2>
           {(data.packageRequests || []).filter((request: Row) => ["requested", "offered"].includes(request.status)).length ?
             (data.packageRequests || []).filter((request: Row) => ["requested", "offered"].includes(request.status)).map((request: Row) => (
@@ -1452,8 +1422,8 @@ function TutorView({
                 </form>
               </div>
             )) : <p>Không có yêu cầu mới.</p>}
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "trials" && <div className="panel">
           <h2>Yêu cầu học thử</h2>
           {(data.trials || []).length ? (
             data.trials.map((t: Row) => (
@@ -1497,13 +1467,13 @@ function TutorView({
           ) : (
             <p>Chưa có yêu cầu học thử.</p>
           )}
-        </div>
+        </div>}
       </>
     );
   if (tab === "sessions")
     return (
       <>
-        <div className="panel">
+        {section === "create" && <div className="panel">
           <h2>Tạo buổi học</h2>
           <p className="help-text">
             Hãy thống nhất lịch với học viên trước. Thời lượng được lấy từ gói.
@@ -1557,8 +1527,8 @@ function TutorView({
               </button>
             </div>
           </form>
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "trial" && <div className="panel">
           <h2>Tạo buổi học thử</h2>
           <form
             onSubmit={(e) => {
@@ -1599,8 +1569,8 @@ function TutorView({
               </button>
             </div>
           </form>
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "calendar" && <div className="panel">
           <h2>Lịch học</h2>
           {sessions.length ? (
             sessions
@@ -1617,7 +1587,7 @@ function TutorView({
           ) : (
             <p>Chưa có buổi học nào.</p>
           )}
-        </div>
+        </div>}
       </>
     );
   if (tab === "wallet")
@@ -1633,7 +1603,7 @@ function TutorView({
             <strong>{vnd(data.wallet?.pending)}</strong>
           </div>
         </div>
-        <div className="panel" style={{ marginTop: 18 }}>
+        {section === "request" && <div className="panel" style={{ marginTop: 18 }}>
           <h2>Yêu cầu rút tiền</h2>
           <form
             onSubmit={(e) => {
@@ -1663,8 +1633,8 @@ function TutorView({
               </button>
             </div>
           </form>
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "history" && <div className="panel">
           <h2>Lịch sử rút tiền</h2>
           {(data.withdrawals || []).length ? (
             data.withdrawals.map((w: Row) => (
@@ -1681,7 +1651,7 @@ function TutorView({
           ) : (
             <p>Chưa có yêu cầu rút tiền.</p>
           )}
-        </div>
+        </div>}
       </>
     );
   if (tab === "notices")
@@ -1970,10 +1940,7 @@ function Chat({
   );
 }
 
-function AdminWorkQueue({ user, busy, onDone }: { user: User; busy: boolean; onDone: () => Promise<void> }) {
-  const groups = ["payments", "orders", "sessions", "listings"] as const;
-  const labels: Record<string, string> = { payments: "Thanh toán", orders: "Đơn quá hạn", sessions: "Buổi học", listings: "Tìm kiếm" };
-  const [group, setGroup] = useState<(typeof groups)[number]>("payments");
+function AdminWorkQueue({ group, user, busy, onDone }: { group: string; user: User; busy: boolean; onDone: () => Promise<void> }) {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Row>({ items: [], totalPages: 1, totalItems: 0 });
   const [error, setError] = useState("");
@@ -1997,8 +1964,7 @@ function AdminWorkQueue({ user, busy, onDone }: { user: User; busy: boolean; onD
   }
   return <div className="panel">
     <h2>Cần rà soát ({result.totalItems})</h2>
-    <div className="item-actions" role="group" aria-label="Loại công việc">
-      {groups.map((key) => <button key={key} className={`button button-small ${group === key ? "" : "button-outline"}`} aria-pressed={group === key} disabled={busy || working} onClick={() => { setGroup(key); setPage(1); }}>{labels[key]}</button>)}
+    <div className="item-actions">
       <button className="button button-small button-outline" disabled={busy || working} onClick={() => { setError(""); reload().catch((e) => setError(e.message)); }}>Làm mới</button>
     </div>
     {error && <p role="alert" className="notice error">{error}</p>}
@@ -2012,12 +1978,14 @@ function AdminWorkQueue({ user, busy, onDone }: { user: User; busy: boolean; onD
 
 function AdminView({
   tab,
+  section,
   data,
   run,
   busy,
   user,
 }: {
   tab: string;
+  section: string;
   data: Row;
   run: (a: Row, s?: string) => void;
   busy: boolean;
@@ -2141,7 +2109,7 @@ function AdminView({
       </div>
     );
   if (tab === "tutors")
-    return <AdminTutorReview data={data} run={run} busy={busy} user={user} />;
+    return <AdminTutorReview section={section} data={data} run={run} busy={busy} user={user} />;
   if (tab === "disputes")
     return (
       <div className="panel">
@@ -2207,7 +2175,7 @@ function AdminView({
   if (tab === "money")
     return (
       <>
-        <div className="panel">
+        {section === "refunds" && <div className="panel">
           <h2>Hoàn tiền cho học viên</h2>
           <p className="help-text">
             Chỉ đánh dấu hoàn tất sau khi đã chuyển khoản ngoài hệ thống.
@@ -2272,8 +2240,8 @@ function AdminView({
           ) : (
             <p>Chưa có yêu cầu hoàn tiền.</p>
           )}
-        </div>
-        <div className="panel">
+        </div>}
+        {section === "withdrawals" && <div className="panel">
           <h2>Rút tiền của gia sư</h2>
           {(data.withdrawals || []).length ? (
             data.withdrawals.map((w: Row) => (
@@ -2325,7 +2293,7 @@ function AdminView({
           ) : (
             <p>Chưa có yêu cầu rút tiền.</p>
           )}
-        </div>
+        </div>}
       </>
     );
   return (

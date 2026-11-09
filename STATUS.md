@@ -122,3 +122,21 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Thêm composite index `orders(status, tutorId, confirmedCount, count, reservedCount)` vào `firestore.indexes.json` và tạo index trên Firebase production.
 - Kiểm tra: Truy vấn aggregate trước khi sửa trả `FAILED_PRECONDITION`; sau khi index đạt `READY`, chạy lại thành công. JSON hợp lệ và `git diff --check` qua.
 - Giới hạn: Chưa gọi lại API bằng phiên đăng nhập thật; xác nhận bằng truy vấn Firestore tương đương với UID giả.
+
+### 2026-11-08 — Giao diện công khai minh họa phẳng
+
+- Hoàn thành: Vẽ hero SVG với mascot sao đội mũ tốt nghiệp, đi giày thể thao và nhân vật học tập; áp dụng màu phẳng cho trang chủ, tìm gia sư, hồ sơ, hướng dẫn và bảo mật. Thêm nút mở video rõ ràng trên thẻ gia sư để panel không làm lệch nút lưu khi rê chuột.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm test` (41/41), `npm run test:ui` trên mobile/desktop và `git diff --check` đều qua; xem ảnh chụp trang chủ, thẻ gia sư, hướng dẫn, bảo mật. Trang chủ/hồ sơ không tràn ngang ở 390 và 1440 px; hướng dẫn/bảo mật không tràn ngang ở 320, 390 và 1440 px.
+- Giới hạn: Chưa đo độ mượt trên điện thoại cấu hình thấp thật hoặc kiểm tra trực quan phiên đăng nhập thật; UI smoke dùng dữ liệu gia sư giả lập.
+
+### 2026-11-08 — Custom giao diện công khai theo demo HTML
+
+- Hoàn thành: Thêm Baloo 2, màu phẳng và viền navy; nối tìm kiếm ở hero với bộ lọc thật; đổi danh sách thành lưới thẻ màu dùng ảnh gia sư thật và video xem ngay dưới thẻ. Đồng bộ hồ sơ, hướng dẫn, bảo mật và menu tablet; giữ nguyên luồng dữ liệu, Google Form, gói học và học thử.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm test` (41/41), `npm run test:ui` và `git diff --check` qua. UI smoke kiểm tra tìm kiếm, bộ lọc, lưu, video, hồ sơ, học thử, trạng thái chưa mở Google Form và không tràn ngang ở 320, 390, 768, 1440 px; đã xem ảnh chụp các trang công khai trên mobile/desktop và xác nhận viền focus bàn phím.
+- Giới hạn: Chưa đo hiệu năng trên điện thoại thật hoặc kiểm tra bằng tài khoản đăng nhập thật; ảnh và dữ liệu gia sư trong UI smoke là giả lập.
+
+### 2026-11-09 — Tách mục quản lý thành trang con
+
+- Hoàn thành: Thêm URL `section` và điều hướng con cho các nhóm việc của gia sư, học viên và admin theo mẫu Thiết lập; mỗi mục chỉ hiển thị nội dung và phân trang danh sách liên quan. Giữ URL tab cũ, bộ lọc xử lý/lịch sử và các thao tác hiện có.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm test` (43/43), `npm run test:ui` và `git diff --check` qua. Kiểm tra điều hướng con không tràn ngang và link nhận focus ở 320, 390, 768, 1440 px; unit test xác nhận section mặc định, section không hợp lệ và dữ liệu phân trang theo mục.
+- Giới hạn: UI smoke chạy với phiên chưa đăng nhập; chưa kiểm tra trực tiếp các thao tác quản lý bằng tài khoản thật của ba vai trò.
