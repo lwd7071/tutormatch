@@ -152,3 +152,9 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Thay SVG hero bằng ảnh minh họa 2D người dùng đã chọn, đã bỏ mảng đỏ giữa hai chân ngôi sao; giữ bố cục responsive của trang chủ.
 - Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:ui` trên các khung 320, 390, 768 và 1440 px, cùng `git diff --check` đều qua.
 - Giới hạn: Chưa xem trực tiếp trên thiết bị thật; kiểm tra giao diện chạy bằng Chrome headless.
+
+### 2026-11-09 — Làm gọn form hồ sơ gia sư [e1ba908]
+
+- Hoàn thành: Chia form thành các nhóm thông tin, hình thức dạy, ảnh và xác minh; đưa video vào mục tùy chọn. Khu vực dạy trực tiếp chỉ hiện khi cần nhưng giữ dữ liệu đã nhập. Thay ô chọn tệp mặc định bằng nút tải/thay tệp, hiện trạng thái, định dạng, dung lượng và lỗi tải tệp cạnh khu vực xác minh.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm test` (43/43), `npm run test:ui` và `git diff --check` qua. Kiểm tra component thật bằng Playwright ở 320, 390, 768 và 1440 px: không tràn ngang, giữ và gửi dữ liệu khu vực khi đổi hình thức, focus bàn phím, lỗi tệp quá 4 MB, tải tệp thành công, thiếu tệp, hồ sơ bị từ chối và hồ sơ chờ duyệt.
+- Giới hạn: Chưa thử trực tiếp bằng tài khoản đăng nhập thật; UI smoke hiện có chỉ kiểm tra khu quản lý khi chưa đăng nhập, còn kiểm tra form dùng dữ liệu và phản hồi API mô phỏng.
