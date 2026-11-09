@@ -179,23 +179,26 @@ export function MobileNav({
               ×
             </button>
           </div>
-          {moreItems.map((item, index) => (
-            <Link
-              key={item.href}
-              ref={index === 0 ? firstItem : undefined}
-              href={item.href}
-              aria-current={item.href === activeHref ? "page" : undefined}
-              onClick={() => setOpen(false)}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-            </Link>
-          ))}
+          {moreItems.map((item, index) => {
+            const ItemLink = item.href.startsWith("/#") ? "a" : Link;
+            return (
+              <ItemLink
+                key={item.href}
+                ref={index === 0 ? firstItem : undefined}
+                href={item.href}
+                aria-current={item.href === activeHref ? "page" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <Icon name={item.icon} />
+                {item.label}
+              </ItemLink>
+            );
+          })}
         </div>
       )}
       <nav className="mobile-nav" aria-label="Điều hướng điện thoại">
-        {items.map((item) =>
-          item.icon === "more" ? (
+        {items.map((item) => {
+          if (item.icon === "more") return (
             <button
               key="more"
               ref={trigger}
@@ -208,8 +211,10 @@ export function MobileNav({
               <Icon name="more" />
               <span>Thêm</span>
             </button>
-          ) : (
-            <Link
+          );
+          const ItemLink = item.href.startsWith("/#") ? "a" : Link;
+          return (
+            <ItemLink
               key={item.href}
               href={item.href}
               className={item.href === activeHref ? "active" : ""}
@@ -218,9 +223,9 @@ export function MobileNav({
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-            </Link>
-          ),
-        )}
+            </ItemLink>
+          );
+        })}
       </nav>
     </>
   );

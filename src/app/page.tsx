@@ -28,7 +28,7 @@ export default function Home() {
                 <a className="button hero-cta" href="#gui-yeu-cau">
                   Nhờ tìm gia sư <span aria-hidden>↗</span>
                 </a>
-                <a className="hero-link" href="#tim-gia-su">
+                <a className="button hero-link" href="#tim-gia-su">
                   Tự khám phá gia sư <span aria-hidden>↓</span>
                 </a>
               </div>

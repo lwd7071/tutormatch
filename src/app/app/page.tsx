@@ -1006,9 +1006,9 @@ function StudentView({
         <div className="panel">
           <h2>Học tiếp nào</h2>
           <p>Khám phá hồ sơ và tìm gia sư phù hợp với mục tiêu của bạn.</p>
-          <Link className="button" href="/#tim-gia-su">
+          <a className="button" href="/#tim-gia-su">
             Tìm gia sư
-          </Link>
+          </a>
         </div>
       </>
     );
@@ -1094,7 +1094,7 @@ function StudentView({
           ) : (
             <p>
               Bạn chưa mua gói nào.{" "}
-              <Link href="/#tim-gia-su">Tìm gia sư →</Link>
+              <a href="/#tim-gia-su">Tìm gia sư →</a>
             </p>
           )}
         </div>}

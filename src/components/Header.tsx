@@ -47,8 +47,8 @@ export function Header({ hideMobileNav = false }: { hideMobileNav?: boolean }) {
             </span>
           </Link>
           <nav className="main-nav" aria-label="Điều hướng chính">
-            <Link href="/#tim-gia-su">Tìm gia sư</Link>
-            <Link href="/#gui-yeu-cau">Nhờ tìm giúp</Link>
+            <a href="/#tim-gia-su">Tìm gia sư</a>
+            <a href="/#gui-yeu-cau">Nhờ tìm giúp</a>
             <Link href="/help">Hướng dẫn</Link>
             <Link href="/privacy">Bảo mật</Link>
             <Link href="/app">Khu vực của tôi</Link>

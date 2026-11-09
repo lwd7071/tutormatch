@@ -140,3 +140,9 @@ Lịch sử dưới đây được tổng hợp từ các commit đã có trong 
 - Hoàn thành: Thêm URL `section` và điều hướng con cho các nhóm việc của gia sư, học viên và admin theo mẫu Thiết lập; mỗi mục chỉ hiển thị nội dung và phân trang danh sách liên quan. Giữ URL tab cũ, bộ lọc xử lý/lịch sử và các thao tác hiện có.
 - Kiểm tra: `npm run typecheck`, `npm run build`, `npm test` (43/43), `npm run test:ui` và `git diff --check` qua. Kiểm tra điều hướng con không tràn ngang và link nhận focus ở 320, 390, 768, 1440 px; unit test xác nhận section mặc định, section không hợp lệ và dữ liệu phân trang theo mục.
 - Giới hạn: UI smoke chạy với phiên chưa đăng nhập; chưa kiểm tra trực tiếp các thao tác quản lý bằng tài khoản thật của ba vai trò.
+
+### 2026-11-09 — Sửa link cuộn trang và đồng bộ nút hành động
+
+- Hoàn thành: Đổi các link `/#...` ở menu sang anchor HTML để bấm lại cùng hash vẫn cuộn đúng; gom kích thước, viền, bo góc, font và trạng thái của nút hành động về CSS chung. Nút chính cao 52 px, nút nhỏ cao 42 px trên desktop và 44 px trên mobile; hai nút hero rộng theo nội dung.
+- Kiểm tra: UI smoke mới tái hiện lỗi trước sửa rồi qua sau sửa; kiểm tra bấm lại menu desktop/mobile, chuyển từ trang khác, tìm kiếm, trạng thái biểu mẫu có/chưa mở, focus bàn phím, giảm chuyển động và không tràn ngang ở 320, 390, 768, 1440 px. `npm run typecheck`, `npm run build`, `npm test` (43/43) và `git diff --check` qua; đã xem ảnh chụp hero mobile/desktop và đo nút trên trang chủ, hướng dẫn, khu đăng nhập.
+- Giới hạn: Chưa kiểm tra nút trong khu quản lý bằng tài khoản đăng nhập thật; các nút đó dùng cùng lớp CSS đã được kiểm tra ở trang công khai.
